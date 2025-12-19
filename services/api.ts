@@ -41,15 +41,15 @@ const generateMassiveFleet = (): Product[] => {
         fullFleet.push({
             id: i + 1,
             title: i < baseFleet.length ? base.title : `${base.title} Ed. ${i}`,
-            description: "Véhicule premium, révisé et prêt pour la route. Confort et sécurité garantis par LocaAuto.",
+            description: "Véhicule premium LocaAuto.",
             pricePerDay: base.price,
             category: base.category,
             imageUrl: base.imageUrl,
             available: true,
             transmission: i % 2 === 0 ? 'Automatique' : 'Manuelle',
             fuelType: i % 3 === 0 ? 'Essence' : (i % 3 === 1 ? 'Diesel' : 'Électrique'),
-            seats: base.category === ProductCategory.SUV ? 5 : (base.category === ProductCategory.LUXE ? 4 : 5),
-            options: ["GPS", "Bluetooth", "Climatisation"],
+            seats: base.category === ProductCategory.SUV ? 5 : 4,
+            options: ["GPS", "Bluetooth"],
             usageCategory: i % 5 === 0 ? 'FOR_SALE' : 'FOR_RENT'
         });
     }
@@ -73,44 +73,44 @@ let MOCK_RENTALS: Rental[] = [
     }
 ];
 
-const isOverlapping = (start1: string, end1: string, start2: string, end2: string) => {
-    const s1 = new Date(start1).getTime();
-    const e1 = new Date(end1).getTime();
-    const s2 = new Date(start2).getTime();
-    const e2 = new Date(end2).getTime();
-    return s1 <= e2 && e1 >= s2;
-};
+// LISTE DES ÉQUIPES PERSISTANTE
+let MOCK_WORKERS: Worker[] = [
+    { id: 777, fullName: "Marc Admin", email: "admin@locaauto.com", role: "ADMIN", status: "ONLINE" },
+    { id: 888, fullName: "Sophie Martin", email: "sophie.worker@locaauto.com", role: "WORKER", status: "ONLINE" },
+    { id: 999, fullName: "Lucas Dubois", email: "lucas.worker@locaauto.com", role: "WORKER", status: "BUSY" },
+    { id: 1000, fullName: "Emma Leroy", email: "emma.worker@locaauto.com", role: "WORKER", status: "OFFLINE" }
+];
+
+let MOCK_SESSIONS: WorkerSession[] = [
+    { id: 1, workerId: 777, workerName: "Marc Admin", status: "ONLINE", date: new Date().toISOString().split('T')[0], loginTime: new Date(Date.now() - 3600000 * 8).toISOString() },
+    { id: 2, workerId: 888, workerName: "Sophie Martin", status: "ONLINE", date: new Date().toISOString().split('T')[0], loginTime: new Date(Date.now() - 3600000 * 4).toISOString() },
+    { id: 3, workerId: 999, workerName: "Lucas Dubois", status: "BUSY", date: new Date().toISOString().split('T')[0], loginTime: new Date(Date.now() - 3600000 * 2).toISOString() },
+    { id: 4, workerId: 1000, workerName: "Emma Leroy", status: "OFFLINE", date: new Date().toISOString().split('T')[0], loginTime: new Date(Date.now() - 3600000 * 10).toISOString(), logoutTime: new Date(Date.now() - 3600000 * 3).toISOString() }
+];
 
 export const MockApi: ApiClient = {
     getAllProducts: async () => [...MOCK_PRODUCTS],
     getMyRentals: async () => {
         const user = JSON.parse(localStorage.getItem('locaauto_user') || '{}');
-        return MOCK_RENTALS.filter(r => r.clientName === user.fullName || r.clientName === "Client Web");
+        return MOCK_RENTALS.filter(r => r.clientName === user.fullName);
     },
-    checkAvailability: async (productId, start, end) => !MOCK_RENTALS.some(r => r.productId === productId && r.status !== RentalStatus.CANCELLED && isOverlapping(start, end, r.startDate, r.endDate)),
-    findAvailableProducts: async (start, end) => {
-        const unavailable = new Set(MOCK_RENTALS.filter(r => r.status !== RentalStatus.CANCELLED && isOverlapping(start, end, r.startDate, r.endDate)).map(r => r.productId));
-        return MOCK_PRODUCTS.filter(p => !unavailable.has(p.id) && p.available).map(p => p.id);
-    },
+    checkAvailability: async (productId, start, end) => true,
+    findAvailableProducts: async (start, end) => MOCK_PRODUCTS.map(p => p.id),
     fetchCarAvailabilityCalendar: async (productId) => {
-        const productRentals = MOCK_RENTALS.filter(r => r.productId === Number(productId) && r.status !== RentalStatus.CANCELLED);
         const days: DayAvailability[] = [];
         const today = new Date();
         for (let i = -10; i < 40; i++) {
             const d = new Date(today); d.setDate(today.getDate() + i);
-            const dStr = d.toISOString().split('T')[0];
-            const isReserved = productRentals.some(r => isOverlapping(dStr, dStr, r.startDate, r.endDate));
-            days.push({ date: d, isReserved });
+            days.push({ date: d, isReserved: false });
         }
         return days;
     },
     createRental: async (data) => {
-        const p = MOCK_PRODUCTS.find(x => x.id === data.productId);
+        const p = MOCK_PRODUCTS.find(x => x.id === Number(data.productId));
         const user = JSON.parse(localStorage.getItem('locaauto_user') || '{"fullName": "Client Web"}');
-        
         const newRental: Rental = {
             id: Date.now(),
-            productId: data.productId,
+            productId: Number(data.productId),
             productTitle: p?.title || "Véhicule",
             productImage: p?.imageUrl || "",
             startDate: data.startDate,
@@ -121,55 +121,63 @@ export const MockApi: ApiClient = {
             clientName: data.clientName || user.fullName,
             type: data.type || 'RENTAL'
         };
-        
         MOCK_RENTALS.push(newRental);
-        
-        // DÉCLENCHE LA SYNCHRONISATION TEMPS RÉEL
         wsService.emit('calendar_refresh_needed', null);
-        wsService.emit('incoming_message', {
-            id: Date.now().toString(),
-            sender: "Système",
-            content: `Nouvelle ${newRental.type === 'SALE' ? 'DEMANDE DE VENTE' : 'RÉSERVATION'} : ${newRental.clientName} pour ${newRental.productTitle}.`,
-            timestamp: new Date(),
-            isSystem: true
-        });
-
         return true;
     },
-    updateProductMission: async (id, mission) => {
-        const p = MOCK_PRODUCTS.find(x => x.id === id);
-        if (p) p.currentMission = mission;
+    updateProductMission: async (id, mission, workerName, start, end) => {
+        const idx = MOCK_PRODUCTS.findIndex(p => p.id === id);
+        if (idx !== -1) {
+            MOCK_PRODUCTS[idx] = { 
+                ...MOCK_PRODUCTS[idx], 
+                currentMission: mission, 
+                assignedWorker: workerName,
+                missionStartDate: start,
+                missionEndDate: end
+            };
+        }
         return true;
     },
-    updateProductStatus: async (id, avail) => {
-        const p = MOCK_PRODUCTS.find(x => x.id === id);
-        if (p) p.available = avail;
+    updateProductStatus: async (id, avail, reason) => {
+        const idx = MOCK_PRODUCTS.findIndex(p => p.id === id);
+        if (idx !== -1) {
+            MOCK_PRODUCTS[idx] = { ...MOCK_PRODUCTS[idx], available: avail, currentMission: avail ? "" : reason };
+        }
         return true;
     },
-    getAllRentalsForCalendar: async () => {
-        return [...MOCK_RENTALS];
-    },
+    getAllRentalsForCalendar: async () => [...MOCK_RENTALS],
     cancelRental: async (id) => {
-        const r = MOCK_RENTALS.find(x => x.id === id);
-        if (r) r.status = RentalStatus.CANCELLED;
+        MOCK_RENTALS = MOCK_RENTALS.filter(x => String(x.id) !== String(id));
         wsService.emit('calendar_refresh_needed', null);
         return true;
     },
     updateRental: async (id, data) => {
-        const idx = MOCK_RENTALS.findIndex(x => x.id === id);
+        const idx = MOCK_RENTALS.findIndex(x => String(x.id) === String(id));
         if (idx !== -1) {
             MOCK_RENTALS[idx] = { ...MOCK_RENTALS[idx], ...data };
             wsService.emit('calendar_refresh_needed', null);
         }
         return true;
     },
-    getAllWorkers: async () => [
-        { id: 1, fullName: "Agent de Flotte", email: "worker-paris@locaauto.com", role: 'WORKER', status: 'ONLINE' },
-        { id: 2, fullName: "Directeur d'Agence", email: "admin@locaauto.com", role: 'ADMIN', status: 'ONLINE' }
-    ],
-    saveWorker: async () => true,
-    deleteWorker: async () => true,
-    getWorkerSessions: async () => [],
+    getAllWorkers: async () => [...MOCK_WORKERS],
+    saveWorker: async (worker) => {
+        if(worker.id) {
+            const idx = MOCK_WORKERS.findIndex(w => w.id === worker.id);
+            if(idx !== -1) MOCK_WORKERS[idx] = { ...MOCK_WORKERS[idx], ...worker } as Worker;
+        } else {
+            const newWorker = { ...worker, id: Date.now(), status: 'OFFLINE' } as Worker;
+            MOCK_WORKERS.push(newWorker);
+        }
+        return true;
+    },
+    deleteWorker: async (id) => {
+        MOCK_WORKERS = MOCK_WORKERS.filter(w => w.id !== id);
+        return true;
+    },
+    getWorkerSessions: async (workerId) => {
+        if(workerId) return MOCK_SESSIONS.filter(s => s.workerId === workerId);
+        return [...MOCK_SESSIONS];
+    },
     addProduct: async (p) => {
         const newP = { ...p, id: Date.now() } as Product;
         MOCK_PRODUCTS.push(newP);

@@ -1,14 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Truck, Users, MessageSquare, LogOut, Bell, Menu, CarFront, Gauge } from 'lucide-react';
+import { LayoutDashboard, Calendar, Truck, Users, MessageSquare, LogOut, Bell, Menu, CarFront, Gauge, ShieldCheck } from 'lucide-react';
 import FleetManagement from './FleetManagement';
 import AgencyCalendar from './AgencyCalendar';
 import SharedInbox from './SharedInbox';
 import OnlineUserList from './OnlineUserList';
 import AdminTeamManagement from './AdminTeamManagement';
 import AdminCarManagement from './AdminCarManagement';
-import WorkerCarManagement from './WorkerCarManagement'; // Nouvelle Page Worker
+import WorkerCarManagement from './WorkerCarManagement';
 import WorkerHistory from './WorkerHistory';
 import { wsService } from '../../services/websocket';
 import { useAuth } from '../../context/AuthContext';
@@ -23,11 +23,9 @@ const Workspace: React.FC = () => {
     const isAdmin = user?.role === 'ADMIN';
 
     useEffect(() => {
-        // Notification Real-time
         wsService.subscribe('incoming_message', (msg: any) => {
             if (msg.isSystem) {
                 setNotifications(prev => [msg.content, ...prev]);
-                // Auto hide after 5s
                 setTimeout(() => setNotifications(prev => prev.slice(0, -1)), 5000);
             }
         });
@@ -35,112 +33,103 @@ const Workspace: React.FC = () => {
     }, []);
 
     return (
-        <div className="min-h-screen bg-slate-50 flex overflow-hidden">
+        <div className="min-h-screen bg-[#f8fafc] flex overflow-hidden">
             {/* Sidebar Navigation */}
-            <aside className={`bg-slate-900 text-slate-300 w-64 flex-shrink-0 transition-all duration-300 flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full absolute z-20 h-full'}`}>
-                <div className="h-16 flex items-center px-6 bg-slate-950 font-bold text-white text-xl tracking-wider">
-                    {isAdmin ? 'ADMIN' : 'AGENCE'}<span className="text-blue-500">PRO</span>
+            <aside className={`bg-[#0f172a] text-slate-300 w-72 flex-shrink-0 transition-all duration-300 flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full absolute z-50 h-full'}`}>
+                <div className="h-20 flex items-center px-8 bg-[#020617] font-black text-white text-2xl tracking-tighter">
+                    LOCA<span className="text-blue-500">AUTO</span>
+                    <span className="ml-2 bg-blue-500/20 text-blue-400 text-[10px] px-2 py-0.5 rounded border border-blue-500/30 uppercase tracking-widest">PRO</span>
                 </div>
 
-                <div className="flex-1 overflow-y-auto py-4">
-                    <nav className="space-y-1 px-3">
-                        <Link to="/workspace" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive('') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800'}`}>
+                <div className="flex-1 overflow-y-auto py-6">
+                    <nav className="space-y-1.5 px-4">
+                        <Link to="/workspace" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold ${isActive('') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'hover:bg-slate-800/50'}`}>
                             <LayoutDashboard size={20} /> Dashboard
                         </Link>
                         
-                        <div className="pt-2 pb-1 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Opérations</div>
-                        <Link to="/workspace/calendar" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive('/calendar') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800'}`}>
-                            <Calendar size={20} /> Planning
+                        <div className="pt-6 pb-2 px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Opérations</div>
+                        <Link to="/workspace/calendar" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold ${isActive('/calendar') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'hover:bg-slate-800/50'}`}>
+                            <Calendar size={20} /> Planning Global
                         </Link>
                         
-                        {/* Worker only sees Fleet Management (Missions) */}
+                        <Link to="/workspace/fleet" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold ${isActive('/fleet') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'hover:bg-slate-800/50'}`}>
+                            <Truck size={20} /> Missions Flotte
+                        </Link>
+
                         {!isAdmin && (
-                            <>
-                                <Link to="/workspace/fleet" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive('/fleet') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800'}`}>
-                                    <Truck size={20} /> Missions Flotte
-                                </Link>
-                                <Link to="/workspace/cars" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive('/cars') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800'}`}>
-                                    <Gauge size={20} /> État Voitures
-                                </Link>
-                            </>
+                            <Link to="/workspace/cars" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold ${isActive('/cars') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'hover:bg-slate-800/50'}`}>
+                                <Gauge size={20} /> État des Voitures
+                            </Link>
                         )}
                         
-                        {/* Admin specific links */}
+                        {/* Administration : Visible SEULEMENT pour Admin */}
                         {isAdmin && (
                             <>
-                                <div className="pt-4 pb-1 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Administration</div>
-                                <Link to="/workspace/fleet" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive('/fleet') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800'}`}>
-                                    <Truck size={20} /> Missions (Admin)
-                                </Link>
-                                <Link to="/workspace/admin/team" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive('/admin/team') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800'}`}>
+                                <div className="pt-8 pb-2 px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Administration</div>
+                                <Link to="/workspace/admin/team" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold ${isActive('/admin/team') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'hover:bg-slate-800/50'}`}>
                                     <Users size={20} /> Gestion Équipe
                                 </Link>
-                                <Link to="/workspace/admin/cars" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive('/admin/cars') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800'}`}>
-                                    <CarFront size={20} /> Gestion Véhicules
+                                <Link to="/workspace/admin/cars" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold ${isActive('/admin/cars') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'hover:bg-slate-800/50'}`}>
+                                    <CarFront size={20} /> Catalogue & Prix
                                 </Link>
                             </>
                         )}
 
-                        <div className="pt-4 pb-1 px-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Communication</div>
-                        <Link to="/workspace/inbox" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${isActive('/inbox') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/50' : 'hover:bg-slate-800'}`}>
-                            <MessageSquare size={20} /> Messagerie <span className="ml-auto bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">3</span>
+                        <div className="pt-8 pb-2 px-4 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Communication</div>
+                        <Link to="/workspace/inbox" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold ${isActive('/inbox') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'hover:bg-slate-800/50'}`}>
+                            <MessageSquare size={20} /> Messagerie Agence
                         </Link>
                     </nav>
 
-                    {!isAdmin && (
-                        <div className="mt-8 px-6">
-                            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Collègues en ligne</p>
-                            <OnlineUserList />
-                        </div>
-                    )}
+                    <div className="mt-10 px-8">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-5">Collègues actifs</p>
+                        <OnlineUserList />
+                    </div>
                 </div>
 
-                <div className="p-4 bg-slate-950 border-t border-slate-800">
-                    <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">{user?.fullName.charAt(0)}</div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white truncate">{user?.fullName}</p>
-                            <p className="text-xs text-green-400 truncate">● En ligne</p>
+                <div className="p-6 bg-[#020617] border-t border-slate-800/50">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-xl shadow-inner">
+                            {user?.fullName.charAt(0)}
                         </div>
-                        <Link to="/" className="text-slate-400 hover:text-white"><LogOut size={18} /></Link>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-black text-white truncate">{user?.fullName}</p>
+                            <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest">{user?.role}</p>
+                        </div>
+                        <Link to="/" className="text-slate-500 hover:text-white transition-colors"><LogOut size={20} /></Link>
                     </div>
                 </div>
             </aside>
 
             {/* Main Content */}
-            <main className={`flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300 ${!sidebarOpen ? 'ml-0' : ''}`}>
-                {/* Header */}
-                <header className="bg-white border-b border-gray-200 h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8">
-                    <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-500 hover:text-gray-700">
-                        <Menu size={24} />
+            <main className={`flex-1 flex flex-col min-w-0 overflow-hidden`}>
+                {/* Header Dashboard */}
+                <header className="bg-white border-b border-gray-200 h-20 flex items-center justify-between px-8 sticky top-0 z-40">
+                    <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-slate-400 hover:text-slate-900 transition-colors">
+                        <Menu size={28} />
                     </button>
-                    <div className="flex items-center gap-4">
+                    
+                    <div className="flex items-center gap-6">
+                        <div className="hidden sm:flex flex-col items-end">
+                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Aujourd'hui</p>
+                            <p className="text-sm font-black text-slate-900">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                        </div>
+                        <div className="h-10 w-[1px] bg-gray-200 mx-2"></div>
                         <div className="relative">
-                            <Bell size={20} className="text-gray-400 hover:text-gray-600 cursor-pointer" />
-                            {notifications.length > 0 && <span className="absolute top-0 right-0 block h-2 w-2 rounded-full ring-2 ring-white bg-red-500"></span>}
+                            <Bell size={24} className="text-slate-400 hover:text-blue-600 cursor-pointer transition-colors" />
+                            {notifications.length > 0 && <span className="absolute -top-1 -right-1 block h-4 w-4 rounded-full ring-2 ring-white bg-red-500 text-[8px] font-black text-white flex items-center justify-center animate-bounce">{notifications.length}</span>}
                         </div>
                     </div>
                 </header>
 
-                {/* Notifications Toast */}
-                <div className="fixed top-20 right-4 z-50 space-y-2">
-                    {notifications.map((note, idx) => (
-                        <div key={idx} className="bg-slate-800 text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 animate-in slide-in-from-right fade-in">
-                            <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
-                            <span className="text-sm">{note}</span>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+                <div className="flex-1 overflow-auto p-8 custom-scrollbar bg-[#f8fafc]">
                     <Routes>
-                        <Route path="/" element={<DashboardStats isAdmin={isAdmin} />} />
+                        <Route path="/" element={<DashboardStats user={user} />} />
                         <Route path="/calendar" element={<AgencyCalendar />} />
                         <Route path="/fleet" element={<FleetManagement />} />
                         <Route path="/inbox" element={<SharedInbox />} />
-                        <Route path="/cars" element={<WorkerCarManagement />} /> {/* Route Worker uniquement */}
+                        <Route path="/cars" element={<WorkerCarManagement />} />
                         
-                        {/* Admin Routes */}
                         {isAdmin && (
                             <>
                                 <Route path="/admin/team" element={<AdminTeamManagement />} />
@@ -155,26 +144,56 @@ const Workspace: React.FC = () => {
     );
 };
 
-// Composant interne pour la page d'accueil du dashboard
-const DashboardStats = ({ isAdmin }: { isAdmin: boolean }) => (
-    <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-slate-800">Vue d'ensemble {isAdmin && "(Admin)"}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <p className="text-sm text-gray-500 font-medium">Réservations à traiter</p>
-                <p className="text-3xl font-bold text-slate-800 mt-2">12</p>
-                <div className="mt-4 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-orange-500 w-[45%]"></div></div>
+const DashboardStats = ({ user }: { user: any }) => (
+    <div className="space-y-8 animate-in fade-in duration-500">
+        <div className="flex items-end justify-between">
+            <div>
+                <h1 className="text-4xl font-black text-slate-900 tracking-tight">Tableau de bord</h1>
+                <p className="text-slate-500 font-medium mt-1">Gérez efficacement les flux de l'agence.</p>
             </div>
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <p className="text-sm text-gray-500 font-medium">{isAdmin ? 'Employés Actifs' : 'Véhicules en Mission'}</p>
-                <p className="text-3xl font-bold text-slate-800 mt-2">{isAdmin ? '8' : '4'}</p>
-                 <div className="mt-4 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden"><div className="h-full bg-blue-500 w-[70%]"></div></div>
+            {user?.role === 'ADMIN' && (
+                <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-xl border border-blue-100 font-black text-xs uppercase tracking-widest">
+                    <ShieldCheck size={16} /> Mode Supervision
+                </div>
+            )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="bg-white p-8 rounded-3xl shadow-[0_15px_30px_rgba(0,0,0,0.03)] border border-gray-100 group hover:border-orange-200 transition-all">
+                <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 transition-transform">
+                    <Calendar size={24} />
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Réservations à traiter</p>
+                <p className="text-4xl font-black text-slate-900 mt-2">12</p>
+                <div className="mt-6 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-orange-500 w-[45%] rounded-full"></div>
+                </div>
             </div>
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-xl shadow-sm border border-slate-700 text-white flex flex-col justify-center">
-                 <p className="text-slate-300 text-sm mb-2">Statut Agence</p>
-                 <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="font-bold text-lg">Opérationnel</span>
+
+            <div className="bg-white p-8 rounded-3xl shadow-[0_15px_30px_rgba(0,0,0,0.03)] border border-gray-100 group hover:border-blue-200 transition-all">
+                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-sm group-hover:scale-110 transition-transform">
+                    <Truck size={24} />
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Flotte en mission</p>
+                <p className="text-4xl font-black text-slate-900 mt-2">08</p>
+                 <div className="mt-6 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-600 w-[70%] rounded-full"></div>
+                </div>
+            </div>
+
+            <div className="bg-[#0f172a] p-8 rounded-3xl shadow-xl border border-slate-800 text-white flex flex-col justify-between">
+                 <div>
+                    <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] mb-4">Statut Agence</p>
+                    <div className="flex items-center gap-3">
+                        <div className="w-4 h-4 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+                        <span className="font-black text-2xl tracking-tight">Opérationnel</span>
+                    </div>
+                 </div>
+                 <div className="mt-8 flex items-center justify-between">
+                    <div className="flex -space-x-3">
+                        {[1,2,3].map(i => <div key={i} className="w-10 h-10 rounded-xl bg-slate-800 border-2 border-[#0f172a] flex items-center justify-center font-bold text-xs">AG</div>)}
+                    </div>
+                    <span className="text-xs font-bold text-slate-500">3 agents actifs</span>
                  </div>
             </div>
         </div>

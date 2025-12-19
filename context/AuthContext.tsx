@@ -8,17 +8,11 @@ interface UserCredential {
   fullName: string;
 }
 
-const DEFAULT_PASSWORD = "123456";
-
-// Identifiants par défaut pour le staff interne
-const INTERNAL_STAFF: UserCredential[] = [
-  { email: "admin@locaauto.com", password: DEFAULT_PASSWORD, fullName: "Direction Générale" },
-  { email: "worker-agence@locaauto.com", password: DEFAULT_PASSWORD, fullName: "Responsable Flotte" }
-];
+const DEFAULT_STAFF_PASSWORD = "admin";
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => { success: boolean, error?: string };
   register: (email: string, fullName: string, password: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
@@ -39,44 +33,56 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (storedCreds) {
       setCredentials(JSON.parse(storedCreds));
     } else {
-      setCredentials(INTERNAL_STAFF);
-      localStorage.setItem('locaauto_db_creds', JSON.stringify(INTERNAL_STAFF));
+      const defaultCreds = [
+          { email: "admin@locaauto.com", password: DEFAULT_STAFF_PASSWORD, fullName: "Direction Générale" },
+          { email: "sophie.worker@locaauto.com", password: DEFAULT_STAFF_PASSWORD, fullName: "Sophie Martin" },
+          { email: "lucas.worker@locaauto.com", password: DEFAULT_STAFF_PASSWORD, fullName: "Lucas Dubois" }
+      ];
+      setCredentials(defaultCreds);
+      localStorage.setItem('locaauto_db_creds', JSON.stringify(defaultCreds));
     }
   }, []);
 
-  const login = (email: string, password: string): boolean => {
+  const login = (email: string, password: string): { success: boolean, error?: string } => {
     const lowerEmail = email.toLowerCase().trim();
-    const found = credentials.find(c => c.email === lowerEmail && c.password === password);
     
-    if (!found) return false;
+    // Détection auto-rôle par mot-clé (conformément à la demande utilisateur)
+    const isAdmin = lowerEmail.includes('admin');
+    const isWorker = lowerEmail.includes('worker');
 
-    // RÈGLES DE RÔLES STRICTES :
-    // - Doit finir par @locaauto.com pour être STAFF
-    // - Si contient "admin" -> ADMIN
-    // - Si contient "worker" -> WORKER
-    // - Sinon -> CLIENT
-    let role: 'CLIENT' | 'WORKER' | 'ADMIN' = 'CLIENT';
+    // Vérification en base (on vérifie d'abord si le compte existe dans les credentials stockés)
+    const account = credentials.find(c => c.email === lowerEmail);
     
-    if (lowerEmail.endsWith('@locaauto.com')) {
-        if (lowerEmail.includes('admin')) {
-            role = 'ADMIN';
-        } else if (lowerEmail.includes('worker')) {
-            role = 'WORKER';
-        }
+    if (!account && !isAdmin && !isWorker) {
+        return { 
+            success: false, 
+            error: "Accès refusé : Ce compte n'existe pas. Veuillez vous inscrire." 
+        };
     }
-    
-    const mockUser: User = {
-      id: Math.floor(Math.random() * 10000),
-      fullName: found.fullName,
+
+    // Si c'est un staff (admin ou email contenant 'worker'), le mot de passe par défaut est 'admin'
+    // Sauf s'il a été créé manuellement via SignUp avec un autre password
+    const expectedPassword = account ? account.password : DEFAULT_STAFF_PASSWORD;
+
+    if (password !== expectedPassword) {
+        return { success: false, error: "Mot de passe incorrect." };
+    }
+
+    const role = isAdmin ? 'ADMIN' : (isWorker ? 'WORKER' : 'CLIENT');
+    const fullName = account ? account.fullName : (isAdmin ? "Administrateur" : "Agent de Flotte");
+
+    const sessionUser: User = {
+      id: Math.floor(Math.random() * 9000),
+      fullName: fullName,
       email: lowerEmail,
       role: role,
       isOnline: true,
       token: "session-" + Math.random().toString(36).substring(7)
     };
 
-    setUser(mockUser);
-    localStorage.setItem('locaauto_user', JSON.stringify(mockUser));
-    return true;
+    setUser(sessionUser);
+    localStorage.setItem('locaauto_user', JSON.stringify(sessionUser));
+    return { success: true };
   };
 
   const register = (email: string, fullName: string, password: string) => {
@@ -93,7 +99,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('locaauto_user');
   };
 
-  const isWorker = user?.role === 'WORKER' || user?.role === 'ADMIN';
+  const isStaff = user?.role === 'WORKER' || user?.role === 'ADMIN';
 
   return (
     <AuthContext.Provider value={{ 
@@ -102,7 +108,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       register, 
       logout, 
       isAuthenticated: !!user, 
-      isWorker 
+      isWorker: isStaff 
     }}>
       {children}
     </AuthContext.Provider>
