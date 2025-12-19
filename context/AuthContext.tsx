@@ -8,18 +8,12 @@ interface UserCredential {
   fullName: string;
 }
 
-// RÉGLAGES PAR DÉFAUT (Mot de passe par défaut : 123456)
 const DEFAULT_PASSWORD = "123456";
-const ADMIN_CREDENTIALS: UserCredential[] = [
-  { email: "admin@locaauto.com", password: DEFAULT_PASSWORD, fullName: "Administrateur Système" },
-  { email: "admin@gmail.com", password: DEFAULT_PASSWORD, fullName: "Administrateur Système" }
-];
-const WORKER_CREDENTIALS: UserCredential[] = [
-  { email: "worker@locaauto.com", password: DEFAULT_PASSWORD, fullName: "Agent de Flotte" },
-  { email: "agent@locaauto.com", password: DEFAULT_PASSWORD, fullName: "Agent de Flotte" }
-];
-const INITIAL_CLIENTS: UserCredential[] = [
-  { email: "client@test.com", password: DEFAULT_PASSWORD, fullName: "Jean Dupont" }
+
+// Identifiants par défaut pour le staff interne
+const INTERNAL_STAFF: UserCredential[] = [
+  { email: "admin@locaauto.com", password: DEFAULT_PASSWORD, fullName: "Direction Générale" },
+  { email: "worker-agence@locaauto.com", password: DEFAULT_PASSWORD, fullName: "Responsable Flotte" }
 ];
 
 interface AuthContextType {
@@ -45,31 +39,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (storedCreds) {
       setCredentials(JSON.parse(storedCreds));
     } else {
-      const allDefaults = [...ADMIN_CREDENTIALS, ...WORKER_CREDENTIALS, ...INITIAL_CLIENTS];
-      setCredentials(allDefaults);
-      localStorage.setItem('locaauto_db_creds', JSON.stringify(allDefaults));
+      setCredentials(INTERNAL_STAFF);
+      localStorage.setItem('locaauto_db_creds', JSON.stringify(INTERNAL_STAFF));
     }
   }, []);
 
   const login = (email: string, password: string): boolean => {
     const lowerEmail = email.toLowerCase().trim();
-    
-    // Recherche de l'utilisateur dans la base simulée avec vérification du mot de passe
     const found = credentials.find(c => c.email === lowerEmail && c.password === password);
     
     if (!found) return false;
 
+    // RÈGLES DE RÔLES STRICTES :
+    // - Doit finir par @locaauto.com pour être STAFF
+    // - Si contient "admin" -> ADMIN
+    // - Si contient "worker" -> WORKER
+    // - Sinon -> CLIENT
     let role: 'CLIENT' | 'WORKER' | 'ADMIN' = 'CLIENT';
-    if (ADMIN_CREDENTIALS.some(c => c.email === lowerEmail)) role = 'ADMIN';
-    else if (WORKER_CREDENTIALS.some(c => c.email === lowerEmail)) role = 'WORKER';
+    
+    if (lowerEmail.endsWith('@locaauto.com')) {
+        if (lowerEmail.includes('admin')) {
+            role = 'ADMIN';
+        } else if (lowerEmail.includes('worker')) {
+            role = 'WORKER';
+        }
+    }
     
     const mockUser: User = {
-      id: Math.floor(Math.random() * 1000),
+      id: Math.floor(Math.random() * 10000),
       fullName: found.fullName,
       email: lowerEmail,
       role: role,
       isOnline: true,
-      token: "secure-session-" + Math.random().toString(36).substr(2)
+      token: "session-" + Math.random().toString(36).substring(7)
     };
 
     setUser(mockUser);

@@ -57,7 +57,6 @@ const generateMassiveFleet = (): Product[] => {
 };
 
 let MOCK_PRODUCTS: Product[] = generateMassiveFleet();
-// Synchronisation de la base des réservations incluant ventes et locations
 let MOCK_RENTALS: Rental[] = [
     {
         id: 101,
@@ -84,7 +83,10 @@ const isOverlapping = (start1: string, end1: string, start2: string, end2: strin
 
 export const MockApi: ApiClient = {
     getAllProducts: async () => [...MOCK_PRODUCTS],
-    getMyRentals: async () => [...MOCK_RENTALS],
+    getMyRentals: async () => {
+        const user = JSON.parse(localStorage.getItem('locaauto_user') || '{}');
+        return MOCK_RENTALS.filter(r => r.clientName === user.fullName || r.clientName === "Client Web");
+    },
     checkAvailability: async (productId, start, end) => !MOCK_RENTALS.some(r => r.productId === productId && r.status !== RentalStatus.CANCELLED && isOverlapping(start, end, r.startDate, r.endDate)),
     findAvailableProducts: async (start, end) => {
         const unavailable = new Set(MOCK_RENTALS.filter(r => r.status !== RentalStatus.CANCELLED && isOverlapping(start, end, r.startDate, r.endDate)).map(r => r.productId));
@@ -104,6 +106,8 @@ export const MockApi: ApiClient = {
     },
     createRental: async (data) => {
         const p = MOCK_PRODUCTS.find(x => x.id === data.productId);
+        const user = JSON.parse(localStorage.getItem('locaauto_user') || '{"fullName": "Client Web"}');
+        
         const newRental: Rental = {
             id: Date.now(),
             productId: data.productId,
@@ -114,17 +118,18 @@ export const MockApi: ApiClient = {
             totalPrice: data.totalPrice,
             status: RentalStatus.ACTIVE,
             paymentStatus: PaymentStatus.PAID,
-            clientName: data.clientName || "Client Web",
+            clientName: data.clientName || user.fullName,
             type: data.type || 'RENTAL'
         };
+        
         MOCK_RENTALS.push(newRental);
         
-        // Notification temps réel pour l'agence
+        // DÉCLENCHE LA SYNCHRONISATION TEMPS RÉEL
         wsService.emit('calendar_refresh_needed', null);
         wsService.emit('incoming_message', {
             id: Date.now().toString(),
             sender: "Système",
-            content: `Nouvelle ${newRental.type === 'SALE' ? 'DEMANDE DE VENTE' : 'RÉSERVATION'} : ${newRental.clientName} (${newRental.productTitle}).`,
+            content: `Nouvelle ${newRental.type === 'SALE' ? 'DEMANDE DE VENTE' : 'RÉSERVATION'} : ${newRental.clientName} pour ${newRental.productTitle}.`,
             timestamp: new Date(),
             isSystem: true
         });
@@ -142,7 +147,6 @@ export const MockApi: ApiClient = {
         return true;
     },
     getAllRentalsForCalendar: async () => {
-        // Retourne TOUTES les transactions pour la synchronisation du planning
         return [...MOCK_RENTALS];
     },
     cancelRental: async (id) => {
@@ -159,7 +163,10 @@ export const MockApi: ApiClient = {
         }
         return true;
     },
-    getAllWorkers: async () => [],
+    getAllWorkers: async () => [
+        { id: 1, fullName: "Agent de Flotte", email: "worker-paris@locaauto.com", role: 'WORKER', status: 'ONLINE' },
+        { id: 2, fullName: "Directeur d'Agence", email: "admin@locaauto.com", role: 'ADMIN', status: 'ONLINE' }
+    ],
     saveWorker: async () => true,
     deleteWorker: async () => true,
     getWorkerSessions: async () => [],
