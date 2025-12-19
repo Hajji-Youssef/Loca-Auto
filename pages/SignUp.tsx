@@ -1,9 +1,12 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, Mail, Lock, User, FileText, Phone } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, FileText, Phone, CheckCircle2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const SignUp: React.FC = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -12,6 +15,7 @@ const SignUp: React.FC = () => {
     licenseNumber: '',
     phoneNumber: ''
   });
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -19,69 +23,82 @@ const SignUp: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Données d'inscription envoyées:", formData);
-    alert("Compte créé avec succès ! Bienvenue chez LocaAuto.");
-    navigate('/login');
+    
+    // Enregistrement de l'email dans la base de données simulée de l'AuthContext
+    register(formData.email, formData.fullName);
+    
+    setIsSuccess(true);
+    
+    // Redirection après un petit délai pour montrer le succès
+    setTimeout(() => {
+      navigate('/login');
+    }, 2000);
   };
+
+  if (isSuccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+        <div className="max-w-md w-full bg-white p-10 rounded-3xl shadow-2xl text-center space-y-4 animate-in zoom-in duration-500">
+           <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle2 size={48} />
+           </div>
+           <h2 className="text-2xl font-black text-gray-900">Bienvenue à bord !</h2>
+           <p className="text-gray-500">Votre compte a été créé et votre email est désormais autorisé. Redirection vers la connexion...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-xl shadow-lg">
+      <div className="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
         <div className="text-center">
-          <div className="mx-auto h-12 w-12 bg-primary-100 rounded-full flex items-center justify-center">
-             <UserPlus className="h-6 w-6 text-primary-600" />
+          <div className="mx-auto h-16 w-16 bg-primary-50 rounded-full flex items-center justify-center text-primary-600 mb-4">
+             <UserPlus size={32} />
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900">Créer un compte</h2>
+          <h2 className="text-3xl font-black text-gray-900 tracking-tight">Rejoignez-nous</h2>
+          <p className="mt-2 text-sm text-gray-500">Créez votre profil pour réserver votre prochain véhicule</p>
         </div>
         
         <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm space-y-4">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-gray-400" />
+          <div className="grid grid-cols-1 gap-4">
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500 transition-colors">
+                <User size={18} />
               </div>
-              <input id="fullName" name="fullName" type="text" required className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="Nom complet" value={formData.fullName} onChange={handleChange} />
+              <input name="fullName" type="text" required className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all sm:text-sm" placeholder="Prénom et Nom" value={formData.fullName} onChange={handleChange} />
             </div>
 
-            <div className="relative">
-               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-gray-400" />
+            <div className="relative group">
+               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500 transition-colors">
+                <Mail size={18} />
               </div>
-              <input id="email" name="email" type="email" required className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="Adresse email" value={formData.email} onChange={handleChange} />
+              <input name="email" type="email" required className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all sm:text-sm" placeholder="Email" value={formData.email} onChange={handleChange} />
             </div>
 
-            <div className="relative">
-               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Phone className="h-5 w-5 text-gray-400" />
+            <div className="relative group">
+               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500 transition-colors">
+                <Phone size={18} />
               </div>
-              <input id="phoneNumber" name="phoneNumber" type="tel" required className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="Numéro de téléphone" value={formData.phoneNumber} onChange={handleChange} />
+              <input name="phoneNumber" type="tel" required className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all sm:text-sm" placeholder="Téléphone" value={formData.phoneNumber} onChange={handleChange} />
             </div>
 
-            <div className="relative">
-               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FileText className="h-5 w-5 text-gray-400" />
+            <div className="relative group">
+               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500 transition-colors">
+                <Lock size={18} />
               </div>
-              <input id="licenseNumber" name="licenseNumber" type="text" required className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="Numéro de permis de conduire" value={formData.licenseNumber} onChange={handleChange} />
-            </div>
-
-            <div className="relative">
-               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-gray-400" />
-              </div>
-              <input id="password" name="password" type="password" required className="appearance-none rounded-lg relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm" placeholder="Mot de passe" value={formData.password} onChange={handleChange} />
+              <input name="password" type="password" required className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all sm:text-sm" placeholder="Mot de passe" value={formData.password} onChange={handleChange} />
             </div>
           </div>
 
-          <button type="submit" className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+          <button type="submit" className="w-full flex justify-center py-4 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-gray-900 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all shadow-lg active:scale-95">
             Créer mon compte
           </button>
 
-          <div className="flex items-center justify-center">
-            <div className="text-sm">
-              <Link to="/login" className="font-medium text-primary-600 hover:text-primary-500">
-                Déjà un compte ? Se connecter
-              </Link>
-            </div>
+          <div className="text-center">
+            <Link to="/login" className="text-sm font-semibold text-primary-600 hover:text-primary-700">
+              Déjà inscrit ? <span className="underline">Se connecter</span>
+            </Link>
           </div>
         </form>
       </div>

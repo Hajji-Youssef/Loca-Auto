@@ -34,7 +34,7 @@ const Navbar: React.FC = () => {
             </Link>
             
             <div className="hidden md:ml-10 md:flex md:space-x-8">
-              <Link to="/catalog" className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 ${isActive('/catalog') ? 'border-primary-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Nos Véhicules</Link>
+              <Link to="/catalog" className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 ${isActive('/catalog') ? 'border-primary-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>Nos Locations</Link>
               <Link to="/sales" className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors duration-200 ${isActive('/sales') ? 'border-orange-500 text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-orange-300'}`}>Nos Ventes</Link>
               {user && (
                 <>
@@ -78,7 +78,7 @@ const Navbar: React.FC = () => {
         <div className="md:hidden bg-white border-t border-gray-100 absolute w-full shadow-lg animate-in slide-in-from-top-2 duration-200">
           <div className="pt-2 pb-3 space-y-1">
              <Link to="/catalog" onClick={() => setIsOpen(false)} className={`block pl-3 pr-4 py-3 border-l-4 text-base font-medium ${isActive('/catalog') ? 'bg-primary-50 border-primary-500 text-primary-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300'}`}>
-              <div className="flex items-center gap-3"><Car size={18}/> Nos Véhicules</div>
+              <div className="flex items-center gap-3"><CalendarDays size={18}/> Nos Locations</div>
             </Link>
             <Link to="/sales" onClick={() => setIsOpen(false)} className={`block pl-3 pr-4 py-3 border-l-4 text-base font-medium ${isActive('/sales') ? 'bg-orange-50 border-orange-500 text-orange-700' : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300'}`}>
               <div className="flex items-center gap-3"><ShoppingBag size={18}/> Nos Ventes</div>
@@ -98,18 +98,6 @@ const Navbar: React.FC = () => {
                     <div className="flex items-center gap-3"><Briefcase size={18}/> Espace Agence</div>
                 </Link>
             )}
-          </div>
-          <div className="pt-4 pb-4 border-t border-gray-200 bg-gray-50">
-             <div className="flex flex-col px-4 space-y-3">
-                {!user ? (
-                    <>
-                        <Link to="/signup" onClick={() => setIsOpen(false)} className="block w-full text-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-100">S'inscrire</Link>
-                        <Link to="/login" onClick={() => setIsOpen(false)} className="block w-full text-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 shadow-md">Connexion</Link>
-                    </>
-                ) : (
-                    <button onClick={handleLogout} className="block w-full text-center px-4 py-2 border border-red-200 shadow-sm text-sm font-medium rounded-md text-red-700 bg-red-50 hover:bg-red-100">Déconnexion</button>
-                )}
-             </div>
           </div>
         </div>
       )}

@@ -4,10 +4,9 @@ import { ApiService } from '../services/api';
 import { Product, ProductCategory } from '../types';
 import ProductCard from '../components/ProductCard';
 import { 
-  Search, ShoppingCart, SlidersHorizontal, X, ChevronDown, ChevronUp, RefreshCcw, Tag 
+  Search, ShoppingCart, SlidersHorizontal, X, ChevronDown, ChevronUp, RefreshCcw, Tag, Layers, Loader2, Fuel, Settings2
 } from 'lucide-react';
 
-// Fix: Added explicit props interface and used React.FC to properly handle children
 interface FilterSectionProps {
   title: string;
   isOpen: boolean;
@@ -24,7 +23,7 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   <div className="border-b border-gray-100 py-4 last:border-0">
     <button 
       onClick={onToggle}
-      className="flex w-full items-center justify-between text-sm font-semibold text-gray-900 hover:text-primary-600 transition-colors mb-2"
+      className="flex w-full items-center justify-between text-sm font-semibold text-gray-900 hover:text-orange-600 transition-colors mb-2"
     >
       {title}
       {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -36,7 +35,6 @@ const FilterSection: React.FC<FilterSectionProps> = ({
 const Sales: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,17 +42,14 @@ const Sales: React.FC = () => {
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
   const [selectedFuels, setSelectedFuels] = useState<string[]>([]);
   const [selectedTransmissions, setSelectedTransmissions] = useState<string[]>([]);
-  const [selectedOptions, setSelectedOptions] = useState<string[]>([]); 
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 200000]);
-  const [optionsSearchTerm, setOptionsSearchTerm] = useState('');
 
   const [sectionsOpen, setSectionsOpen] = useState({
     price: true,
     brand: true,
     category: true,
     fuel: false,
-    transmission: false,
-    options: true
+    transmission: false
   });
 
   useEffect(() => {
@@ -65,7 +60,6 @@ const Sales: React.FC = () => {
     setLoading(true);
     try {
       const data = await ApiService.getAllProducts();
-      // FILTRE STRICT : Uniquement les ventes
       const salesData = data.filter(p => p.usageCategory === 'FOR_SALE');
       setProducts(salesData);
     } catch (error) {
@@ -80,34 +74,21 @@ const Sales: React.FC = () => {
     return Array.from(brands).sort();
   }, [products]);
 
-  const availableFuels = useMemo(() => {
-    const fuels = new Set(products.map(p => p.fuelType));
-    return Array.from(fuels).sort();
-  }, [products]);
-
-  const availableOptions = useMemo(() => {
-    const optionsSet = new Set<string>();
-    products.forEach(p => {
-      if (p.options) p.options.forEach(opt => optionsSet.add(opt));
-    });
-    return Array.from(optionsSet).sort();
-  }, [products]);
+  const fuelTypes = ['Essence', 'Diesel', 'Électrique', 'Hybride'];
+  const transmissions = ['Automatique', 'Manuelle'];
 
   const filteredProducts = products.filter(p => {
-    const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          p.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(p.category);
     const productBrand = p.title.split(' ')[0];
     const matchesBrand = selectedBrands.length === 0 || selectedBrands.includes(productBrand);
     const matchesFuel = selectedFuels.length === 0 || selectedFuels.includes(p.fuelType);
     const matchesTransmission = selectedTransmissions.length === 0 || selectedTransmissions.includes(p.transmission);
-    const matchesOptions = selectedOptions.length === 0 || (p.options && selectedOptions.every(opt => p.options.includes(opt)));
     
-    // Pour la vente, on simule un prix total
     const totalPrice = p.pricePerDay * 250;
     const matchesPrice = totalPrice >= priceRange[0] && totalPrice <= priceRange[1];
 
-    return matchesSearch && matchesCategory && matchesBrand && matchesFuel && matchesTransmission && matchesOptions && matchesPrice;
+    return matchesSearch && matchesCategory && matchesBrand && matchesFuel && matchesTransmission && matchesPrice;
   });
 
   const resetFilters = () => {
@@ -116,7 +97,6 @@ const Sales: React.FC = () => {
     setSelectedBrands([]);
     setSelectedFuels([]);
     setSelectedTransmissions([]);
-    setSelectedOptions([]);
     setPriceRange([0, 200000]);
   };
 
@@ -130,7 +110,6 @@ const Sales: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           
-          {/* SIDEBAR FILTERS (Restored) */}
           <aside className="w-full lg:w-64 space-y-6">
             <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
                 <div className="relative">
@@ -138,44 +117,65 @@ const Sales: React.FC = () => {
                     <input type="text" placeholder="Rechercher..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500" />
                 </div>
                 
-                <FilterSection title="Marque" isOpen={sectionsOpen.brand} onToggle={() => setSectionsOpen({...sectionsOpen, brand: !sectionsOpen.brand})}>
-                    <div className="space-y-2">
-                    {availableBrands.map(brand => (
-                      <label key={brand} className="flex items-center gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={selectedBrands.includes(brand)} onChange={() => toggleFilter(brand, selectedBrands, setSelectedBrands)} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
-                        <span className="text-sm text-gray-600 group-hover:text-gray-900">{brand}</span>
-                      </label>
-                    ))}
-                    </div>
+                <FilterSection title="Budget Max" isOpen={sectionsOpen.price} onToggle={() => setSectionsOpen({...sectionsOpen, price: !sectionsOpen.price})}>
+                    <input type="range" min="0" max="200000" step="1000" value={priceRange[1]} onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])} className="w-full accent-orange-600" />
+                    <div className="flex justify-between text-xs text-gray-600"><span>0€</span><span>{priceRange[1].toLocaleString()}€</span></div>
                 </FilterSection>
 
                 <FilterSection title="Catégorie" isOpen={sectionsOpen.category} onToggle={() => setSectionsOpen({...sectionsOpen, category: !sectionsOpen.category})}>
                     <div className="space-y-2">
                     {Object.values(ProductCategory).map(cat => (
                       <label key={cat} className="flex items-center gap-3 cursor-pointer group">
-                        <input type="checkbox" checked={selectedCategories.includes(cat)} onChange={() => toggleFilter(cat, selectedCategories, setSelectedCategories)} className="w-4 h-4 rounded border-gray-300 text-primary-600" />
-                        <span className="text-sm text-gray-600 group-hover:text-gray-900">{cat}</span>
+                        <input type="checkbox" checked={selectedCategories.includes(cat)} onChange={() => toggleFilter(cat, selectedCategories, setSelectedCategories)} className="w-4 h-4 rounded border-gray-300 text-orange-600" />
+                        <span className="text-sm text-gray-600 group-hover:text-orange-600 transition-colors">{cat}</span>
                       </label>
                     ))}
                     </div>
                 </FilterSection>
 
-                <FilterSection title="Options" isOpen={sectionsOpen.options} onToggle={() => setSectionsOpen({...sectionsOpen, options: !sectionsOpen.options})}>
-                    <div className="max-h-40 overflow-y-auto space-y-1 pr-2 custom-scrollbar">
-                        {availableOptions.map(opt => (
-                        <label key={opt} className="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" checked={selectedOptions.includes(opt)} onChange={() => toggleFilter(opt, selectedOptions, setSelectedOptions)} className="w-3.5 h-3.5 rounded border-gray-300 text-primary-600" />
-                            <span className="text-xs text-gray-600">{opt}</span>
-                        </label>
+                <FilterSection title="Carburant" isOpen={sectionsOpen.fuel} onToggle={() => setSectionsOpen({...sectionsOpen, fuel: !sectionsOpen.fuel})}>
+                    <div className="space-y-2">
+                        {fuelTypes.map(fuel => (
+                            <label key={fuel} className="flex items-center gap-3 cursor-pointer p-1 group">
+                                <input type="checkbox" checked={selectedFuels.includes(fuel)} onChange={() => toggleFilter(fuel, selectedFuels, setSelectedFuels)} className="rounded border-gray-300 text-orange-600" />
+                                <div className="flex items-center gap-2">
+                                    <Fuel size={14} className="text-gray-400 group-hover:text-orange-600 transition-colors" />
+                                    <span className="text-sm text-gray-600 group-hover:text-orange-600 transition-colors">{fuel}</span>
+                                </div>
+                            </label>
                         ))}
                     </div>
                 </FilterSection>
 
-                <button onClick={resetFilters} className="w-full flex items-center justify-center gap-2 text-xs text-red-600 hover:bg-red-50 py-2 rounded-lg transition-colors"><RefreshCcw size={12} /> Réinitialiser</button>
+                <FilterSection title="Boîte de vitesse" isOpen={sectionsOpen.transmission} onToggle={() => setSectionsOpen({...sectionsOpen, transmission: !sectionsOpen.transmission})}>
+                    <div className="space-y-2">
+                        {transmissions.map(trans => (
+                            <label key={trans} className="flex items-center gap-3 cursor-pointer p-1 group">
+                                <input type="checkbox" checked={selectedTransmissions.includes(trans)} onChange={() => toggleFilter(trans, selectedTransmissions, setSelectedTransmissions)} className="rounded border-gray-300 text-orange-600" />
+                                <div className="flex items-center gap-2">
+                                    <Settings2 size={14} className="text-gray-400 group-hover:text-orange-600 transition-colors" />
+                                    <span className="text-sm text-gray-600 group-hover:text-orange-600 transition-colors">{trans}</span>
+                                </div>
+                            </label>
+                        ))}
+                    </div>
+                </FilterSection>
+
+                <FilterSection title="Marque" isOpen={sectionsOpen.brand} onToggle={() => setSectionsOpen({...sectionsOpen, brand: !sectionsOpen.brand})}>
+                    <div className="space-y-2">
+                    {availableBrands.map(brand => (
+                      <label key={brand} className="flex items-center gap-3 cursor-pointer group">
+                        <input type="checkbox" checked={selectedBrands.includes(brand)} onChange={() => toggleFilter(brand, selectedBrands, setSelectedBrands)} className="w-4 h-4 rounded border-gray-300 text-orange-600" />
+                        <span className="text-sm text-gray-600 group-hover:text-orange-600 transition-colors">{brand}</span>
+                      </label>
+                    ))}
+                    </div>
+                </FilterSection>
+
+                <button onClick={resetFilters} className="w-full flex items-center justify-center gap-2 text-xs text-red-600 hover:bg-red-50 py-2 rounded-lg transition-colors"><RefreshCcw size={12} /> Réinitialiser les filtres</button>
             </div>
           </aside>
 
-          {/* MAIN GRID */}
           <main className="flex-1">
             <div className="mb-6">
                 <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2"><ShoppingCart className="text-orange-600" /> Véhicules d'occasion</h1>
@@ -183,16 +183,16 @@ const Sales: React.FC = () => {
             </div>
 
             {loading ? (
-              <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div></div>
+              <div className="flex justify-center py-20"><Loader2 className="animate-spin text-orange-600" size={48}/></div>
             ) : filteredProducts.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredProducts.map(product => (<ProductCard key={product.id} product={product} onRent={() => {}} />))}
               </div>
             ) : (
-              <div className="text-center py-20 bg-white rounded-xl border border-gray-200 border-dashed">
-                <Search className="mx-auto text-gray-300 mb-4" size={48} />
-                <h3 className="text-lg font-medium text-gray-900">Aucun véhicule à la vente trouvé</h3>
-                <button onClick={resetFilters} className="mt-4 text-primary-600 hover:underline">Effacer les filtres</button>
+              <div className="text-center py-20 bg-white rounded-3xl border border-gray-200 border-dashed">
+                <Layers className="mx-auto text-gray-300 mb-4" size={48} />
+                <h3 className="text-lg font-bold text-gray-900">Aucun résultat</h3>
+                <p className="text-gray-500 mt-1">Modifiez vos critères pour trouver votre bonheur.</p>
               </div>
             )}
           </main>

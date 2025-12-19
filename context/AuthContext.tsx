@@ -2,32 +2,57 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { User } from '../types';
 
-// RÉGLAGES DE SÉCURITÉ : Liste blanche des accès privilégiés
-const ADMIN_WHITELIST = ["admin@locaauto.com", "admin@gmail.com", "direction@locaauto.com"];
-const WORKER_WHITELIST = ["worker@locaauto.com", "agent@locaauto.com", "sophie@locaauto.com"];
+// RÉGLAGES DE SÉCURITÉ : Liste blanche par défaut (Hardcoded)
+const ADMIN_EMAILS = ["admin@locaauto.com", "admin@gmail.com", "direction@locaauto.com"];
+const WORKER_EMAILS = ["worker@locaauto.com", "agent@locaauto.com", "sophie@locaauto.com"];
+const INITIAL_CLIENTS = ["client@test.com", "user@test.com"];
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string) => void;
+  login: (email: string) => boolean; // Retourne true si succès, false si non trouvé
+  register: (email: string, fullName: string) => void;
   logout: () => void;
   isAuthenticated: boolean;
   isWorker: boolean;
+  registeredEmails: string[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [registeredEmails, setRegisteredEmails] = useState<string[]>([]);
 
-  const login = (email: string) => {
+  // Initialisation : Charger la base de données depuis le localStorage ou utiliser les défauts
+  useEffect(() => {
+    const storedUser = localStorage.getItem('locaauto_user');
+    if (storedUser) setUser(JSON.parse(storedUser));
+
+    const storedEmails = localStorage.getItem('locaauto_db_emails');
+    if (storedEmails) {
+      setRegisteredEmails(JSON.parse(storedEmails));
+    } else {
+      const allDefaults = [...ADMIN_EMAILS, ...WORKER_EMAILS, ...INITIAL_CLIENTS];
+      setRegisteredEmails(allDefaults);
+      localStorage.setItem('locaauto_db_emails', JSON.stringify(allDefaults));
+    }
+  }, []);
+
+  const login = (email: string): boolean => {
     const lowerEmail = email.toLowerCase().trim();
+    
+    // Vérification de l'existence dans la base de données simulée
+    if (!registeredEmails.includes(lowerEmail)) {
+      return false; 
+    }
+
     let role: 'CLIENT' | 'WORKER' | 'ADMIN' = 'CLIENT';
     let fullName = "Utilisateur";
 
-    if (ADMIN_WHITELIST.includes(lowerEmail)) {
+    if (ADMIN_EMAILS.includes(lowerEmail)) {
         role = 'ADMIN';
         fullName = "Administrateur Système";
-    } else if (WORKER_WHITELIST.includes(lowerEmail)) {
+    } else if (WORKER_EMAILS.includes(lowerEmail)) {
         role = 'WORKER';
         fullName = "Agent de Flotte";
     } else {
@@ -46,6 +71,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     setUser(mockUser);
     localStorage.setItem('locaauto_user', JSON.stringify(mockUser));
+    return true;
+  };
+
+  const register = (email: string, fullName: string) => {
+    const lowerEmail = email.toLowerCase().trim();
+    if (!registeredEmails.includes(lowerEmail)) {
+      const newList = [...registeredEmails, lowerEmail];
+      setRegisteredEmails(newList);
+      localStorage.setItem('locaauto_db_emails', JSON.stringify(newList));
+    }
   };
 
   const logout = () => {
@@ -53,17 +88,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('locaauto_user');
   };
 
-  useEffect(() => {
-    const stored = localStorage.getItem('locaauto_user');
-    if (stored) {
-      setUser(JSON.parse(stored));
-    }
-  }, []);
-
   const isWorker = user?.role === 'WORKER' || user?.role === 'ADMIN';
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user, isWorker }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      register, 
+      logout, 
+      isAuthenticated: !!user, 
+      isWorker,
+      registeredEmails 
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { User, Settings, CreditCard, LogOut, Shield, Car, Save } from 'lucide-react';
+import { User, Settings, CreditCard, LogOut, Shield, Car, Save, Sparkles, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -8,10 +9,18 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'profile' | 'security'>('overview');
   const [isEditing, setIsEditing] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   // Redirection si non connecté
   useEffect(() => {
-    if (!user) navigate('/login');
+    if (!user) {
+        navigate('/login');
+    } else {
+        // Afficher le message de bienvenue au chargement
+        setShowWelcome(true);
+        const timer = setTimeout(() => setShowWelcome(false), 5000);
+        return () => clearTimeout(timer);
+    }
   }, [user, navigate]);
 
   // État local pour le formulaire d'édition
@@ -47,7 +56,24 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 relative">
+      
+      {/* Toast de bienvenue */}
+      {showWelcome && (
+          <div className="fixed top-20 right-4 z-50 bg-white border border-emerald-100 shadow-xl rounded-2xl p-4 pr-12 animate-in slide-in-from-right duration-500 flex items-center gap-4">
+              <div className="bg-emerald-100 text-emerald-600 p-2 rounded-xl">
+                  <Sparkles size={20} />
+              </div>
+              <div>
+                  <p className="text-sm font-bold text-gray-900">Content de vous revoir !</p>
+                  <p className="text-xs text-gray-500">Votre session est active et sécurisée.</p>
+              </div>
+              <button onClick={() => setShowWelcome(false)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
+                  <X size={16} />
+              </button>
+          </div>
+      )}
+
       <div className="max-w-6xl mx-auto">
         
         {/* Header */}
@@ -57,7 +83,7 @@ const Dashboard: React.FC = () => {
             <p className="mt-1 text-sm text-gray-500">Gérez vos informations et consultez vos activités.</p>
           </div>
           <div className="mt-4 sm:mt-0 flex items-center gap-3">
-             <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-lg">
+             <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-lg shadow-sm">
                 {user.fullName.charAt(0)}
              </div>
              <div>
@@ -78,19 +104,19 @@ const Dashboard: React.FC = () => {
               <nav className="flex flex-col p-2 space-y-1">
                 <button 
                   onClick={() => setActiveTab('overview')}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'overview' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'overview' ? 'bg-primary-50 text-primary-700 border-l-4 border-primary-600' : 'text-gray-700 hover:bg-gray-50'}`}
                 >
                   <Car size={18} /> Vue d'ensemble
                 </button>
                 <button 
                   onClick={() => setActiveTab('profile')}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'profile' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'profile' ? 'bg-primary-50 text-primary-700 border-l-4 border-primary-600' : 'text-gray-700 hover:bg-gray-50'}`}
                 >
                   <User size={18} /> Mon Profil
                 </button>
                 <button 
                   onClick={() => setActiveTab('security')}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-primary-50 text-primary-700 border-l-4 border-primary-600' : 'text-gray-700 hover:bg-gray-50'}`}
                 >
                   <Shield size={18} /> Sécurité
                 </button>
