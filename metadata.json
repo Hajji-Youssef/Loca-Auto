@@ -1,5 +1,7 @@
 {
   "name": "LocaAuto",
   "description": "Premium car rental service with real-time availability and Spring Boot backend integration.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "geolocation"
+  ]
 }

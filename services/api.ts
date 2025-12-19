@@ -3,7 +3,6 @@ import { Product, ProductCategory, Rental, RentalStatus, PaymentStatus, RentalRe
 import { wsService } from './websocket';
 
 const USE_MOCK = true; 
-const API_BASE_URL = "http://localhost:8080/api";
 
 export interface ApiClient {
     getAllProducts(): Promise<Product[]>;
@@ -25,10 +24,6 @@ export interface ApiClient {
     updateProduct(id: number, product: Partial<Product>): Promise<Product>;
     deleteProduct(id: number): Promise<boolean>;
 }
-
-// ==========================================
-// MOCK DATA GENERATOR
-// ==========================================
 
 const generateMassiveFleet = (): Product[] => {
     const baseFleet: any[] = [
@@ -61,20 +56,21 @@ const generateMassiveFleet = (): Product[] => {
     return fullFleet;
 };
 
-// ÉTAT GLOBAL PERSISTANT SIMULÉ
 let MOCK_PRODUCTS: Product[] = generateMassiveFleet();
+// Synchronisation de la base des réservations incluant ventes et locations
 let MOCK_RENTALS: Rental[] = [
     {
         id: 101,
         productId: 1,
         productTitle: "Tesla Model 3 Performance",
         productImage: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800",
-        startDate: "2024-03-01",
-        endDate: "2024-03-05",
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
         totalPrice: 480,
         status: RentalStatus.ACTIVE,
         paymentStatus: PaymentStatus.PAID,
-        clientName: "Alice Durand"
+        clientName: "Alice Durand",
+        type: 'RENTAL'
     }
 ];
 
@@ -118,16 +114,17 @@ export const MockApi: ApiClient = {
             totalPrice: data.totalPrice,
             status: RentalStatus.ACTIVE,
             paymentStatus: PaymentStatus.PAID,
-            clientName: data.clientName || "Client Web"
+            clientName: data.clientName || "Client Web",
+            type: data.type || 'RENTAL'
         };
         MOCK_RENTALS.push(newRental);
         
-        // SYNCHRONISATION : Notifier le planning
+        // Notification temps réel pour l'agence
         wsService.emit('calendar_refresh_needed', null);
         wsService.emit('incoming_message', {
             id: Date.now().toString(),
             sender: "Système",
-            content: `Nouvelle réservation : ${newRental.clientName} a réservé une ${newRental.productTitle}.`,
+            content: `Nouvelle ${newRental.type === 'SALE' ? 'DEMANDE DE VENTE' : 'RÉSERVATION'} : ${newRental.clientName} (${newRental.productTitle}).`,
             timestamp: new Date(),
             isSystem: true
         });
@@ -144,7 +141,10 @@ export const MockApi: ApiClient = {
         if (p) p.available = avail;
         return true;
     },
-    getAllRentalsForCalendar: async () => [...MOCK_RENTALS],
+    getAllRentalsForCalendar: async () => {
+        // Retourne TOUTES les transactions pour la synchronisation du planning
+        return [...MOCK_RENTALS];
+    },
     cancelRental: async (id) => {
         const r = MOCK_RENTALS.find(x => x.id === id);
         if (r) r.status = RentalStatus.CANCELLED;

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserPlus, Mail, Lock, User, FileText, Phone, CheckCircle2 } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, Phone, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const SignUp: React.FC = () => {
@@ -12,7 +12,6 @@ const SignUp: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    licenseNumber: '',
     phoneNumber: ''
   });
   const [isSuccess, setIsSuccess] = useState(false);
@@ -23,13 +22,14 @@ const SignUp: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+        alert("Les mots de passe ne correspondent pas.");
+        return;
+    }
     
-    // Enregistrement de l'email dans la base de données simulée de l'AuthContext
-    register(formData.email, formData.fullName);
-    
+    register(formData.email, formData.fullName, formData.password);
     setIsSuccess(true);
     
-    // Redirection après un petit délai pour montrer le succès
     setTimeout(() => {
       navigate('/login');
     }, 2000);
@@ -43,7 +43,7 @@ const SignUp: React.FC = () => {
               <CheckCircle2 size={48} />
            </div>
            <h2 className="text-2xl font-black text-gray-900">Bienvenue à bord !</h2>
-           <p className="text-gray-500">Votre compte a été créé et votre email est désormais autorisé. Redirection vers la connexion...</p>
+           <p className="text-gray-500">Votre compte a été créé avec succès. Redirection vers la connexion...</p>
         </div>
       </div>
     );
@@ -88,6 +88,13 @@ const SignUp: React.FC = () => {
                 <Lock size={18} />
               </div>
               <input name="password" type="password" required className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all sm:text-sm" placeholder="Mot de passe" value={formData.password} onChange={handleChange} />
+            </div>
+
+            <div className="relative group">
+               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500 transition-colors">
+                <Lock size={18} />
+              </div>
+              <input name="confirmPassword" type="password" required className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all sm:text-sm" placeholder="Confirmer mot de passe" value={formData.confirmPassword} onChange={handleChange} />
             </div>
           </div>
 

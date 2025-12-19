@@ -1,8 +1,10 @@
 
-import React, { useState, useEffect } from 'react';
-import { User, Settings, CreditCard, LogOut, Shield, Car, Save, Sparkles, X } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { User, Settings, CreditCard, LogOut, Shield, Car, Save, Sparkles, X, KeySquare, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ApiService } from '../services/api';
+import { Rental, RentalStatus } from '../types';
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
@@ -10,20 +12,11 @@ const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'profile' | 'security'>('overview');
   const [isEditing, setIsEditing] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  
+  // États pour les données réelles
+  const [rentals, setRentals] = useState<Rental[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
 
-  // Redirection si non connecté
-  useEffect(() => {
-    if (!user) {
-        navigate('/login');
-    } else {
-        // Afficher le message de bienvenue au chargement
-        setShowWelcome(true);
-        const timer = setTimeout(() => setShowWelcome(false), 5000);
-        return () => clearTimeout(timer);
-    }
-  }, [user, navigate]);
-
-  // État local pour le formulaire d'édition
   const [profileData, setProfileData] = useState({
     fullName: user?.fullName || '',
     email: user?.email || '',
@@ -32,12 +25,41 @@ const Dashboard: React.FC = () => {
     address: "12 Rue de la Paix, 75000 Paris"
   });
 
-  // Mise à jour si l'user charge tardivement
   useEffect(() => {
-    if(user) {
-        setProfileData(prev => ({...prev, fullName: user.fullName, email: user.email}));
+    if (!user) {
+        navigate('/login');
+        return;
     }
-  }, [user]);
+    
+    setShowWelcome(true);
+    const timer = setTimeout(() => setShowWelcome(false), 5000);
+    
+    // Chargement des données réelles pour synchronisation
+    const loadUserData = async () => {
+        try {
+            const userRentals = await ApiService.getMyRentals();
+            setRentals(userRentals);
+        } catch (error) {
+            console.error("Erreur lors de la synchronisation des données", error);
+        } finally {
+            setLoadingData(false);
+        }
+    };
+
+    loadUserData();
+    return () => clearTimeout(timer);
+  }, [user, navigate]);
+
+  // Calculs dynamiques basés sur les données réelles
+  const stats = useMemo(() => {
+    const active = rentals.filter(r => r.status === RentalStatus.ACTIVE).length;
+    const totalSpent = rentals
+        .filter(r => r.status !== RentalStatus.CANCELLED)
+        .reduce((sum, r) => sum + r.totalPrice, 0);
+    
+    // On estime l'ancienneté (mockée ici car non présente en DB)
+    return { active, totalSpent };
+  }, [rentals]);
 
   if (!user) return null;
 
@@ -55,18 +77,23 @@ const Dashboard: React.FC = () => {
       navigate('/');
   };
 
+  const getFriendlyRole = () => {
+      if (user.role === 'ADMIN') return "Administrateur LocaAuto";
+      if (user.role === 'WORKER') return "Agent de Flotte";
+      return "Client LocaAuto";
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4 sm:px-6 lg:px-8 relative">
       
-      {/* Toast de bienvenue */}
       {showWelcome && (
-          <div className="fixed top-20 right-4 z-50 bg-white border border-emerald-100 shadow-xl rounded-2xl p-4 pr-12 animate-in slide-in-from-right duration-500 flex items-center gap-4">
+          <div className="fixed top-24 right-4 z-50 bg-white border border-emerald-100 shadow-xl rounded-2xl p-4 pr-12 animate-in slide-in-from-right duration-500 flex items-center gap-4">
               <div className="bg-emerald-100 text-emerald-600 p-2 rounded-xl">
                   <Sparkles size={20} />
               </div>
               <div>
                   <p className="text-sm font-bold text-gray-900">Content de vous revoir !</p>
-                  <p className="text-xs text-gray-500">Votre session est active et sécurisée.</p>
+                  <p className="text-xs text-gray-500">Votre espace est à jour.</p>
               </div>
               <button onClick={() => setShowWelcome(false)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">
                   <X size={16} />
@@ -76,218 +103,188 @@ const Dashboard: React.FC = () => {
 
       <div className="max-w-6xl mx-auto">
         
-        {/* Header */}
-        <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Mon Espace</h1>
-            <p className="mt-1 text-sm text-gray-500">Gérez vos informations et consultez vos activités.</p>
+        {/* Header - NOM EN GRAND / ROLE EN PETIT */}
+        <div className="mb-10 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+          <div className="space-y-1">
+            <h1 className="text-5xl font-black text-gray-900 tracking-tight leading-tight">{user.fullName}</h1>
+            <p className="text-lg font-bold text-primary-600 flex items-center gap-2">
+                <div className="w-2 h-2 bg-primary-600 rounded-full"></div>
+                {getFriendlyRole()}
+            </p>
           </div>
-          <div className="mt-4 sm:mt-0 flex items-center gap-3">
-             <div className="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-lg shadow-sm">
+          <div className="flex items-center gap-4 bg-white p-2 pr-6 rounded-2xl shadow-sm border border-gray-100">
+             <div className="h-14 w-14 rounded-xl bg-gray-900 flex items-center justify-center text-white font-black text-2xl shadow-lg">
                 {user.fullName.charAt(0)}
              </div>
              <div>
-                <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
-                <div className="flex items-center gap-2">
-                    <p className="text-xs text-gray-500">Membre depuis Octobre 2023</p>
-                    {user.role === 'WORKER' && <span className="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-bold">STAFF</span>}
-                </div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Compte Vérifié</p>
+                <p className="text-sm font-bold text-gray-900">{user.email}</p>
              </div>
           </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
           
-          {/* Sidebar Navigation */}
           <div className="w-full lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden sticky top-24">
               <nav className="flex flex-col p-2 space-y-1">
-                <button 
-                  onClick={() => setActiveTab('overview')}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'overview' ? 'bg-primary-50 text-primary-700 border-l-4 border-primary-600' : 'text-gray-700 hover:bg-gray-50'}`}
-                >
-                  <Car size={18} /> Vue d'ensemble
+                <button onClick={() => setActiveTab('overview')} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'overview' ? 'bg-primary-600 text-white shadow-lg shadow-primary-200' : 'text-gray-600 hover:bg-gray-50'}`}>
+                  <Car size={18} /> Tableau de bord
                 </button>
-                <button 
-                  onClick={() => setActiveTab('profile')}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'profile' ? 'bg-primary-50 text-primary-700 border-l-4 border-primary-600' : 'text-gray-700 hover:bg-gray-50'}`}
-                >
+                <button onClick={() => setActiveTab('profile')} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'profile' ? 'bg-primary-600 text-white shadow-lg shadow-primary-200' : 'text-gray-600 hover:bg-gray-50'}`}>
                   <User size={18} /> Mon Profil
                 </button>
-                <button 
-                  onClick={() => setActiveTab('security')}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-primary-50 text-primary-700 border-l-4 border-primary-600' : 'text-gray-700 hover:bg-gray-50'}`}
-                >
+                <button onClick={() => setActiveTab('security')} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'security' ? 'bg-primary-600 text-white shadow-lg shadow-primary-200' : 'text-gray-600 hover:bg-gray-50'}`}>
                   <Shield size={18} /> Sécurité
                 </button>
-                <div className="border-t border-gray-100 my-2"></div>
-                <button 
-                  onClick={handleLogout}
-                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors w-full text-left"
-                >
+                <div className="border-t border-gray-100 my-2 mx-4"></div>
+                <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold text-red-600 hover:bg-red-50 transition-all w-full text-left">
                   <LogOut size={18} /> Déconnexion
                 </button>
               </nav>
             </div>
           </div>
 
-          {/* Main Content Area */}
           <div className="flex-1">
-            
-            {/* OVERVIEW TAB */}
             {activeTab === 'overview' && (
               <div className="space-y-6 animate-in fade-in duration-300">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-blue-100 rounded-lg text-blue-600"><Car size={24} /></div>
-                      <div>
-                        <p className="text-sm text-gray-500">Locations actives</p>
-                        <p className="text-2xl font-bold text-gray-900">1</p>
-                      </div>
+                  {/* LOCATIONS ACTIVES SYNCHRONISÉES */}
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 group hover:border-primary-200 transition-all">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Locations actives</p>
+                    {loadingData ? <Loader2 className="animate-spin text-primary-300" size={24}/> : (
+                        <p className="text-3xl font-black text-gray-900">{stats.active.toString().padStart(2, '0')}</p>
+                    )}
+                    <div className="mt-4 flex items-center gap-2 text-primary-600 font-bold text-xs">
+                        <Car size={14}/> Gérer mes réservations
                     </div>
                   </div>
-                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <div className="flex items-center gap-4">
-                      <div className="p-3 bg-green-100 rounded-lg text-green-600"><CreditCard size={24} /></div>
-                      <div>
-                        <p className="text-sm text-gray-500">Dépenses ce mois</p>
-                        <p className="text-2xl font-bold text-gray-900">475 €</p>
-                      </div>
+
+                  {/* DÉPENSES SYNCHRONISÉES */}
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 group hover:border-emerald-200 transition-all">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Dépenses totales</p>
+                    {loadingData ? <Loader2 className="animate-spin text-emerald-300" size={24}/> : (
+                        <p className="text-3xl font-black text-gray-900">{stats.totalSpent.toLocaleString()} €</p>
+                    )}
+                    <div className="mt-4 flex items-center gap-2 text-emerald-600 font-bold text-xs">
+                        <CreditCard size={14}/> Voir facturation
                     </div>
                   </div>
-                  <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                     <div className="flex items-center gap-4">
-                      <div className="p-3 bg-purple-100 rounded-lg text-purple-600"><Settings size={24} /></div>
-                      <div>
-                        <p className="text-sm text-gray-500">Total Locations</p>
-                        <p className="text-2xl font-bold text-gray-900">12</p>
-                      </div>
+
+                  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 group hover:border-purple-200 transition-all">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Fidélité</p>
+                    <p className="text-3xl font-black text-gray-900">OR</p>
+                    <div className="mt-4 flex items-center gap-2 text-purple-600 font-bold text-xs">
+                        <Sparkles size={14}/> Mes avantages
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="flex justify-between items-center mb-4">
-                     <h3 className="text-lg font-bold text-gray-900">Dernière activité</h3>
-                     <Link to="/rentals" className="text-sm text-primary-600 hover:text-primary-700 font-medium">Voir tout</Link>
-                  </div>
-                  <div className="border-l-4 border-green-500 bg-green-50 p-4 rounded-r-lg">
-                    <div className="flex justify-between">
-                      <div>
-                        <p className="font-semibold text-green-900">Tesla Model 3</p>
-                        <p className="text-sm text-green-700">Du 10 Déc au 15 Déc 2024</p>
-                      </div>
-                      <span className="text-sm font-bold text-green-800">En cours</span>
-                    </div>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                  <h3 className="text-lg font-black text-gray-900 mb-6 flex items-center gap-2">
+                      <Sparkles className="text-amber-500" size={20}/> Activité récente
+                  </h3>
+                  <div className="space-y-4">
+                      {rentals.length > 0 ? (
+                        rentals.slice(0, 3).map(r => (
+                          <div key={r.id} className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-primary-600 shadow-sm border border-gray-200">
+                                  <Car size={20}/>
+                              </div>
+                              <div className="flex-1">
+                                  <p className="text-sm font-bold text-gray-900">{r.productTitle}</p>
+                                  <p className="text-xs text-gray-500">Du {r.startDate} au {r.endDate}</p>
+                              </div>
+                              <span className={`text-[10px] font-black uppercase px-2 py-1 rounded ${r.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'}`}>
+                                {r.status}
+                              </span>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-gray-400 text-center py-4 italic">Aucune activité récente.</p>
+                      )}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* PROFILE TAB */}
             {activeTab === 'profile' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in duration-300">
-                <div className="p-6 border-b border-gray-200 flex justify-between items-center">
-                  <h3 className="text-lg font-bold text-gray-900">Informations Personnelles</h3>
-                  <button 
-                    onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${isEditing ? 'bg-primary-600 text-white hover:bg-primary-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-                  >
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-in fade-in duration-300">
+                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                  <h3 className="text-lg font-black text-gray-900">Informations Personnelles</h3>
+                  <button onClick={() => isEditing ? handleSaveProfile() : setIsEditing(true)} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${isEditing ? 'bg-primary-600 text-white shadow-lg shadow-primary-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>
                     {isEditing ? <><Save size={16}/> Enregistrer</> : <><Settings size={16}/> Modifier</>}
                   </button>
                 </div>
                 
-                <div className="p-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Nom Complet</label>
-                      <input 
-                        type="text" 
-                        name="fullName"
-                        disabled={!isEditing}
-                        value={profileData.fullName}
-                        onChange={handleProfileChange}
-                        className={`w-full rounded-lg border p-2.5 ${isEditing ? 'border-gray-300 focus:ring-primary-500 focus:border-primary-500' : 'bg-gray-50 border-transparent text-gray-500'}`}
-                      />
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Nom Complet</label>
+                      <input type="text" name="fullName" disabled={!isEditing} value={profileData.fullName} onChange={handleProfileChange} className={`w-full rounded-xl border p-3 text-sm font-medium ${isEditing ? 'border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none' : 'bg-gray-50 border-transparent text-gray-500 cursor-not-allowed'}`} />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                      <input 
-                        type="email" 
-                        name="email"
-                        disabled={!isEditing}
-                        value={profileData.email}
-                        onChange={handleProfileChange}
-                        className={`w-full rounded-lg border p-2.5 ${isEditing ? 'border-gray-300 focus:ring-primary-500 focus:border-primary-500' : 'bg-gray-50 border-transparent text-gray-500'}`}
-                      />
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Email professionnel</label>
+                      <input type="email" name="email" disabled={!isEditing} value={profileData.email} onChange={handleProfileChange} className={`w-full rounded-xl border p-3 text-sm font-medium ${isEditing ? 'border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none' : 'bg-gray-50 border-transparent text-gray-500 cursor-not-allowed'}`} />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-                      <input 
-                        type="tel" 
-                        name="phoneNumber"
-                        disabled={!isEditing}
-                        value={profileData.phoneNumber}
-                        onChange={handleProfileChange}
-                        className={`w-full rounded-lg border p-2.5 ${isEditing ? 'border-gray-300 focus:ring-primary-500 focus:border-primary-500' : 'bg-gray-50 border-transparent text-gray-500'}`}
-                      />
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Téléphone mobile</label>
+                      <input type="tel" name="phoneNumber" disabled={!isEditing} value={profileData.phoneNumber} onChange={handleProfileChange} className={`w-full rounded-xl border p-3 text-sm font-medium ${isEditing ? 'border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none' : 'bg-gray-50 border-transparent text-gray-500 cursor-not-allowed'}`} />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de Permis</label>
-                      <input 
-                        type="text" 
-                        name="licenseNumber"
-                        disabled={!isEditing}
-                        value={profileData.licenseNumber}
-                        onChange={handleProfileChange}
-                        className={`w-full rounded-lg border p-2.5 ${isEditing ? 'border-gray-300 focus:ring-primary-500 focus:border-primary-500' : 'bg-gray-50 border-transparent text-gray-500'}`}
-                      />
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Numéro de Permis</label>
+                      <input type="text" name="licenseNumber" disabled={!isEditing} value={profileData.licenseNumber} onChange={handleProfileChange} className={`w-full rounded-xl border p-3 text-sm font-medium ${isEditing ? 'border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none' : 'bg-gray-50 border-transparent text-gray-500 cursor-not-allowed'}`} />
                     </div>
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Adresse Postale</label>
-                      <input 
-                        type="text" 
-                        name="address"
-                        disabled={!isEditing}
-                        value={profileData.address}
-                        onChange={handleProfileChange}
-                        className={`w-full rounded-lg border p-2.5 ${isEditing ? 'border-gray-300 focus:ring-primary-500 focus:border-primary-500' : 'bg-gray-50 border-transparent text-gray-500'}`}
-                      />
+                      <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-1.5">Adresse de résidence</label>
+                      <input type="text" name="address" disabled={!isEditing} value={profileData.address} onChange={handleProfileChange} className={`w-full rounded-xl border p-3 text-sm font-medium ${isEditing ? 'border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none' : 'bg-gray-50 border-transparent text-gray-500 cursor-not-allowed'}`} />
                     </div>
-                  </div>
                 </div>
               </div>
             )}
 
-            {/* SECURITY TAB */}
             {activeTab === 'security' && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in duration-300">
-                <div className="p-6 border-b border-gray-200">
-                  <h3 className="text-lg font-bold text-gray-900">Mot de passe et Sécurité</h3>
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-in fade-in duration-300">
+                <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-lg font-black text-gray-900">Sécurité du compte</h3>
+                  <div className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-2">
+                      <Shield size={12}/> Sécurité Maximale
+                  </div>
                 </div>
                 <div className="p-6">
-                  <div className="flex items-center justify-between py-4 border-b border-gray-100">
-                    <div>
-                      <p className="font-medium text-gray-900">Mot de passe</p>
-                      <p className="text-sm text-gray-500">Dernière modification il y a 3 mois</p>
-                    </div>
-                    <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">Modifier</button>
+                  {/* GESTION MOT DE PASSE UNIQUEMENT */}
+                  <div className="bg-slate-50 p-6 rounded-2xl border border-gray-100 mb-6 flex flex-col md:flex-row items-center gap-6">
+                      <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-primary-600 shadow-sm border border-gray-100">
+                          <KeySquare size={32}/>
+                      </div>
+                      <div className="flex-1 text-center md:text-left">
+                          <p className="font-black text-gray-900 text-xl">Modifier votre mot de passe</p>
+                          <p className="text-sm text-gray-500 mt-1 leading-relaxed">
+                              Assurez la sécurité de votre compte en changeant régulièrement votre mot de passe.
+                          </p>
+                      </div>
+                      <button className="px-6 py-3 bg-gray-900 hover:bg-primary-600 text-white font-bold rounded-xl text-sm transition-all shadow-lg active:scale-95">
+                          Mettre à jour
+                      </button>
                   </div>
-                  <div className="flex items-center justify-between py-4">
-                    <div>
-                      <p className="font-medium text-gray-900">Authentification à deux facteurs</p>
-                      <p className="text-sm text-gray-500">Ajouter une couche de sécurité supplémentaire</p>
-                    </div>
-                    <div className="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
-                        <div className="block bg-gray-300 w-10 h-6 rounded-full"></div>
-                        <div className="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition"></div>
-                    </div>
+
+                  <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 border-b border-gray-50">
+                          <div>
+                              <p className="font-bold text-gray-900">Dernière connexion</p>
+                              <p className="text-xs text-gray-400 mt-0.5">Aujourd'hui à {new Date().getHours()}:{new Date().getMinutes().toString().padStart(2, '0')}</p>
+                          </div>
+                      </div>
+                      <div className="flex items-center justify-between p-4">
+                          <div>
+                              <p className="font-bold text-gray-900">Appareils autorisés</p>
+                              <p className="text-xs text-gray-400 mt-0.5">Vous êtes connecté sur cet appareil uniquement.</p>
+                          </div>
+                          <button className="text-primary-600 font-bold text-xs hover:underline">Gérer</button>
+                      </div>
                   </div>
                 </div>
               </div>
             )}
-
           </div>
         </div>
       </div>

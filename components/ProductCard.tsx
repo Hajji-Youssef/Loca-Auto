@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import { Product } from '../types';
 import { Fuel, Settings2, Users, CalendarDays, ChevronDown, ChevronUp, Ban, Wrench, ShoppingBag, Info, CheckCircle2, Loader2 } from 'lucide-react';
 import Calendar from './Calendar';
+import { ApiService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 interface ProductCardProps {
   product: Product;
@@ -10,22 +12,35 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onRent }) => {
+  const { user } = useAuth();
   const [showCalendar, setShowCalendar] = useState(false);
   const [isBuying, setIsBuying] = useState(false);
   const [buySuccess, setBuySuccess] = useState(false);
   
   const isForSale = product.usageCategory === 'FOR_SALE';
 
-  const handleAction = () => {
+  const handleAction = async () => {
     if (isForSale) {
         if (buySuccess) return;
         setIsBuying(true);
-        // Simulation d'envoi de demande d'achat
-        setTimeout(() => {
+        try {
+            // Synchronize with the planning by creating a 'SALE' type transaction
+            const today = new Date().toISOString().split('T')[0];
+            await ApiService.createRental({
+                productId: product.id,
+                startDate: today,
+                endDate: today,
+                totalPrice: product.pricePerDay * 250,
+                clientName: user?.fullName || "Acheteur Potentiel",
+                type: 'SALE'
+            });
             setIsBuying(false);
             setBuySuccess(true);
-            setTimeout(() => setBuySuccess(false), 5000); // Reset après 5s
-        }, 1500);
+            setTimeout(() => setBuySuccess(false), 5000);
+        } catch (err) {
+            setIsBuying(false);
+            alert("Erreur lors de la demande d'achat.");
+        }
     } else {
         onRent(product);
     }

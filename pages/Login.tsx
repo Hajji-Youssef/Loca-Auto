@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LogIn, Mail, Lock, ShieldAlert, CheckCircle2, Loader2 } from 'lucide-react';
+import { LogIn, Mail, Lock, ShieldAlert, CheckCircle2, Loader2, Info } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Login: React.FC = () => {
@@ -24,28 +24,26 @@ const Login: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     
-    // Petite simulation de latence réseau pour le réalisme
+    // Simulation d'un délai réseau court
     setTimeout(() => {
-      const success = login(formData.email);
+      const success = login(formData.email, formData.password);
       setLoading(false);
       
       if (success) {
         setIsSuccess(true);
-        // Redirection après 2 secondes pour laisser voir le message de bienvenue
         setTimeout(() => {
           if (formData.email.toLowerCase().includes('worker') || formData.email.toLowerCase().includes('admin')) {
               navigate('/workspace');
           } else {
               navigate('/dashboard');
           }
-        }, 2200);
+        }, 1500);
       } else {
-        setError("Accès refusé : Cet email n'est pas enregistré dans notre base de données. Veuillez créer un compte.");
+        setError("Identifiants incorrects. Vérifiez votre email et mot de passe.");
       }
     }, 800);
   };
 
-  // Overlay de succès
   if (isSuccess) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/80 backdrop-blur-md animate-in fade-in duration-500">
@@ -58,22 +56,9 @@ const Login: React.FC = () => {
           </div>
           <div className="space-y-2">
             <h2 className="text-3xl font-black text-gray-900 tracking-tight">Connexion réussie !</h2>
-            <p className="text-lg text-gray-600">Ravi de vous revoir,<br/><span className="text-primary-600 font-bold">{user?.fullName}</span></p>
+            <p className="text-lg text-gray-600 italic">Redirection vers votre espace...</p>
           </div>
-          <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-             <div className="bg-primary-600 h-full animate-grow-full origin-left"></div>
-          </div>
-          <p className="text-xs text-gray-400 font-medium uppercase tracking-widest">Sécurisation de la session...</p>
         </div>
-        <style>{`
-          @keyframes grow-full {
-            0% { width: 0%; }
-            100% { width: 100%; }
-          }
-          .animate-grow-full {
-            animation: grow-full 2s linear forwards;
-          }
-        `}</style>
       </div>
     );
   }
@@ -86,9 +71,16 @@ const Login: React.FC = () => {
              <LogIn size={32} />
           </div>
           <h2 className="text-3xl font-black text-gray-900 tracking-tight">Connexion</h2>
-          <p className="mt-2 text-sm text-gray-500">
-            Accédez à votre espace sécurisé LocaAuto
-          </p>
+          <p className="mt-2 text-sm text-gray-500 italic">Accès sécurisé à votre profil LocaAuto</p>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex gap-3 text-xs text-blue-800">
+            <Info className="shrink-0 mt-0.5" size={16} />
+            <div>
+                <p className="font-bold mb-1">Démonstration :</p>
+                <p>Emails : <strong>worker@locaauto.com</strong> ou <strong>admin@locaauto.com</strong></p>
+                <p>Pass : <strong>123456</strong></p>
+            </div>
         </div>
 
         {error && (
@@ -104,47 +96,23 @@ const Login: React.FC = () => {
                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500 transition-colors">
                 <Mail size={18} />
               </div>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                disabled={loading}
-                className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all sm:text-sm"
-                placeholder="votre@email.com"
-                value={formData.email}
-                onChange={handleChange}
-              />
+              <input id="email" name="email" type="email" required disabled={loading} className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all sm:text-sm" placeholder="votre@email.com" value={formData.email} onChange={handleChange} />
             </div>
 
             <div className="relative group">
                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary-500 transition-colors">
                 <Lock size={18} />
               </div>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                disabled={loading}
-                className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all sm:text-sm"
-                placeholder="Mot de passe"
-                value={formData.password}
-                onChange={handleChange}
-              />
+              <input id="password" name="password" type="password" required disabled={loading} className="block w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-all sm:text-sm" placeholder="Mot de passe" value={formData.password} onChange={handleChange} />
             </div>
           </div>
 
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full flex justify-center items-center gap-3 py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-gray-900 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all shadow-lg active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
-          >
+          <button type="submit" disabled={loading} className="w-full flex justify-center items-center gap-3 py-3.5 px-4 border border-transparent text-sm font-bold rounded-xl text-white bg-gray-900 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all shadow-lg active:scale-95 disabled:opacity-70">
             {loading ? <Loader2 size={20} className="animate-spin" /> : "Se connecter"}
           </button>
 
           <div className="text-center">
-            <Link to="/signup" className="text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors">
+            <Link to="/signup" className="text-sm font-semibold text-primary-600 hover:text-primary-700">
               Pas encore membre ? <span className="underline">Créer un compte</span>
             </Link>
           </div>

@@ -34,12 +34,11 @@ export interface Product {
   fuelType: string;
   seats: number;
   options: string[];
-  // New fields for Fleet Management
   usageCategory: 'FOR_RENT' | 'FOR_SALE';
-  currentMission?: string; // Free text for maintenance/logistics
+  currentMission?: string;
   assignedWorker?: string;
-  missionStartDate?: string; // ISO Date YYYY-MM-DD
-  missionEndDate?: string;   // ISO Date YYYY-MM-DD
+  missionStartDate?: string;
+  missionEndDate?: string;
 }
 
 export interface Rental {
@@ -53,6 +52,7 @@ export interface Rental {
   status: RentalStatus;
   paymentStatus: PaymentStatus;
   clientName?: string;
+  type: 'RENTAL' | 'SALE'; // New field to distinguish synchronized transactions
 }
 
 export interface CalendarDay {
@@ -80,6 +80,7 @@ export interface RentalRequest {
   startDate: string;
   endDate: string;
   totalPrice: number;
+  type?: 'RENTAL' | 'SALE';
 }
 
 export interface ChatMessage {
@@ -97,7 +98,6 @@ export interface WorkerStatus {
   lastActive: string;
 }
 
-// Pour le CRUD Employé
 export interface Worker {
     id: number;
     fullName: string;
@@ -106,13 +106,12 @@ export interface Worker {
     status: 'ONLINE' | 'BUSY' | 'OFFLINE';
 }
 
-// Pour le Pointage et l'Historique
 export interface WorkerSession {
   id: number;
   workerId: number;
   workerName: string;
   status: 'ONLINE' | 'BUSY' | 'OFFLINE';
-  loginTime: string; // ISO Datetime
-  logoutTime?: string; // ISO Datetime
-  date: string; // YYYY-MM-DD pour filtrage facile
+  loginTime: string;
+  logoutTime?: string;
+  date: string;
 }
