@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '../../services/api';
 import { Product, ProductCategory } from '../../types';
-import { Plus, Edit2, Trash2, Save, X, Car, Wrench, AlertTriangle, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Save, X, Car, Wrench, AlertTriangle, Loader2 } from 'lucide-react';
 
 const AdminCarManagement: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
@@ -29,6 +29,21 @@ const AdminCarManagement: React.FC = () => {
         const data = await ApiService.getAllProducts();
         setProducts(data);
         setLoading(false);
+    };
+
+    const handleDelete = async (id: number) => {
+        if (confirm("⚠️ Êtes-vous sûr de vouloir SUPPRIMER ce véhicule ? Toutes les réservations liées seront également supprimées !")) {
+            setIsSubmitting(true);
+            try {
+                await ApiService.deleteProduct(id);
+                // Mise à jour immédiate UI
+                setProducts(prev => prev.filter(p => p.id !== id));
+            } catch (e) {
+                alert("Erreur lors de la suppression.");
+            } finally {
+                setIsSubmitting(false);
+            }
+        }
     };
 
     const handleEdit = (p: Product) => { setEditingProduct(p); setFormData(p); setIsModalOpen(true); };
@@ -84,7 +99,7 @@ const AdminCarManagement: React.FC = () => {
                             )}
                             <div className="absolute top-2 right-2 flex gap-2">
                                 <button onClick={() => handleEdit(p)} className="bg-white/90 backdrop-blur-md p-2 rounded-full shadow-sm hover:bg-white text-slate-700 hover:text-blue-600 transition-all"><Edit2 size={16}/></button>
-                                <button onClick={() => { if(confirm("Supprimer ?")) ApiService.deleteProduct(p.id).then(loadData); }} className="bg-white/90 backdrop-blur-md p-2 rounded-full shadow-sm hover:bg-white text-slate-700 hover:text-red-600 transition-all"><Trash2 size={16}/></button>
+                                <button onClick={() => handleDelete(p.id)} className="bg-white/90 backdrop-blur-md p-2 rounded-full shadow-sm hover:bg-white text-slate-700 hover:text-red-600 transition-all"><Trash2 size={16}/></button>
                             </div>
                         </div>
                         <div className="p-4">
@@ -103,6 +118,7 @@ const AdminCarManagement: React.FC = () => {
                 ))}
             </div>
 
+            {/* Modal de création / édition */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/70 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in duration-200">
@@ -125,8 +141,7 @@ const AdminCarManagement: React.FC = () => {
                 <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm animate-in fade-in">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
                         <h3 className="font-bold text-slate-800 text-lg mb-4 flex items-center gap-2"><Wrench className="text-orange-500"/> Mise en maintenance</h3>
-                        <div className="bg-orange-50 p-3 rounded-lg text-sm text-orange-800 mb-4 flex gap-2"><AlertTriangle size={18} className="shrink-0"/> <p>Veuillez justifier l'indisponibilité du véhicule pour le suivi.</p></div>
-                        <textarea className="w-full border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px] mb-4" placeholder="Ex: Révision des 30k km, changement pneus..." value={unavailabilityReason} onChange={(e) => setUnavailabilityReason(e.target.value)} required autoFocus></textarea>
+                        <textarea className="w-full border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none min-h-[120px] mb-4" placeholder="Raison de la mise hors service..." value={unavailabilityReason} onChange={(e) => setUnavailabilityReason(e.target.value)} required autoFocus></textarea>
                         <div className="flex gap-3"><button onClick={() => setToggleStep('IDLE')} className="flex-1 py-2.5 border border-gray-300 rounded-lg font-bold text-slate-500">Annuler</button><button onClick={() => executeToggle(toggleCar, false, unavailabilityReason)} disabled={!unavailabilityReason.trim() || isSubmitting} className="flex-1 py-2.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg shadow-lg active:scale-95 transition-all">{isSubmitting ? <Loader2 className="animate-spin mx-auto"/> : "Confirmer"}</button></div>
                     </div>
                 </div>

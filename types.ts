@@ -104,6 +104,7 @@ export interface Worker {
     email: string;
     role: 'WORKER' | 'ADMIN';
     status: 'ONLINE' | 'BUSY' | 'OFFLINE';
+    salary: number; // Champ salaire ajouté
 }
 
 export interface WorkerSession {

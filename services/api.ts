@@ -58,74 +58,20 @@ const generateMassiveFleet = (): Product[] => {
 
 let MOCK_PRODUCTS: Product[] = generateMassiveFleet();
 let MOCK_RENTALS: Rental[] = [
-    {
-        id: 101,
-        productId: 1,
-        productTitle: "Tesla Model 3 Performance",
-        productImage: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800",
-        startDate: new Date().toISOString().split('T')[0],
-        endDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0],
-        totalPrice: 480,
-        status: RentalStatus.ACTIVE,
-        paymentStatus: PaymentStatus.PAID,
-        clientName: "Alice Durand",
-        type: 'RENTAL'
-    },
-    // AJOUT DE VENTES STATIQUES
-    {
-        id: 2001,
-        productId: 3,
-        productTitle: "Tesla Model S Plaid",
-        productImage: "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800",
-        startDate: "2024-05-15",
-        endDate: "2024-05-15",
-        totalPrice: 62500,
-        status: RentalStatus.COMPLETED,
-        paymentStatus: PaymentStatus.PAID,
-        clientName: "Jean-Pierre Martin",
-        type: 'SALE'
-    },
-    {
-        id: 2002,
-        productId: 16,
-        productTitle: "Fiat 500 Hybrid",
-        productImage: "https://www.fiat-official.tn/content/dam/fiat2023/cross/models/500/500/canvas/canvas-4/mobile.jpg",
-        startDate: "2024-05-18",
-        endDate: "2024-05-18",
-        totalPrice: 11250,
-        status: RentalStatus.ACTIVE,
-        paymentStatus: PaymentStatus.PENDING,
-        clientName: "Sarah Bernhardt",
-        type: 'SALE'
-    },
-    {
-        id: 2003,
-        productId: 4,
-        productTitle: "Peugeot 3008 GT",
-        productImage: "https://tunisieauto.tn/wp-content/uploads/2020/03/3008-GT-01.jpg",
-        startDate: "2024-05-20",
-        endDate: "2024-05-20",
-        totalPrice: 21250,
-        status: RentalStatus.COMPLETED,
-        paymentStatus: PaymentStatus.PAID,
-        clientName: "Marc Lavigne",
-        type: 'SALE'
-    }
+    { id: 101, productId: 1, productTitle: "Tesla Model 3 Performance", productImage: "https://images.unsplash.com/photo-1560958089-b8a1929cea89?w=800", startDate: new Date().toISOString().split('T')[0], endDate: new Date(Date.now() + 86400000 * 3).toISOString().split('T')[0], totalPrice: 480, status: RentalStatus.ACTIVE, paymentStatus: PaymentStatus.PAID, clientName: "Alice Durand", type: 'RENTAL' },
+    { id: 2001, productId: 3, productTitle: "Tesla Model S Plaid", productImage: "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800", startDate: "2024-05-15", endDate: "2024-05-15", totalPrice: 62500, status: RentalStatus.COMPLETED, paymentStatus: PaymentStatus.PAID, clientName: "Jean-Pierre Martin", type: 'SALE' }
 ];
 
-// LISTE DES ÉQUIPES PERSISTANTE
 let MOCK_WORKERS: Worker[] = [
-    { id: 777, fullName: "Marc Admin", email: "admin@locaauto.com", role: "ADMIN", status: "ONLINE" },
-    { id: 888, fullName: "Sophie Martin", email: "sophie.worker@locaauto.com", role: "WORKER", status: "ONLINE" },
-    { id: 999, fullName: "Lucas Dubois", email: "lucas.worker@locaauto.com", role: "WORKER", status: "BUSY" },
-    { id: 1000, fullName: "Emma Leroy", email: "emma.worker@locaauto.com", role: "WORKER", status: "OFFLINE" }
+    { id: 777, fullName: "Marc Admin", email: "admin@locaauto.com", role: "ADMIN", status: "ONLINE", salary: 4500 },
+    { id: 888, fullName: "Sophie Martin", email: "sophie.worker@locaauto.com", role: "WORKER", status: "ONLINE", salary: 2200 },
+    { id: 999, fullName: "Lucas Dubois", email: "lucas.worker@locaauto.com", role: "WORKER", status: "BUSY", salary: 2100 },
+    { id: 1000, fullName: "Emma Leroy", email: "emma.worker@locaauto.com", role: "WORKER", status: "OFFLINE", salary: 2350 }
 ];
 
 let MOCK_SESSIONS: WorkerSession[] = [
     { id: 1, workerId: 777, workerName: "Marc Admin", status: "ONLINE", date: new Date().toISOString().split('T')[0], loginTime: new Date(Date.now() - 3600000 * 8).toISOString() },
-    { id: 2, workerId: 888, workerName: "Sophie Martin", status: "ONLINE", date: new Date().toISOString().split('T')[0], loginTime: new Date(Date.now() - 3600000 * 4).toISOString() },
-    { id: 3, workerId: 999, workerName: "Lucas Dubois", status: "BUSY", date: new Date().toISOString().split('T')[0], loginTime: new Date(Date.now() - 3600000 * 2).toISOString() },
-    { id: 4, workerId: 1000, workerName: "Emma Leroy", status: "OFFLINE", date: new Date().toISOString().split('T')[0], loginTime: new Date(Date.now() - 3600000 * 10).toISOString(), logoutTime: new Date(Date.now() - 3600000 * 3).toISOString() }
+    { id: 2, workerId: 888, workerName: "Sophie Martin", status: "ONLINE", date: new Date().toISOString().split('T')[0], loginTime: new Date(Date.now() - 3600000 * 4).toISOString() }
 ];
 
 export const MockApi: ApiClient = {
@@ -156,7 +102,7 @@ export const MockApi: ApiClient = {
             startDate: data.startDate,
             endDate: data.endDate,
             totalPrice: data.totalPrice,
-            status: data.type === 'SALE' ? RentalStatus.ACTIVE : RentalStatus.ACTIVE,
+            status: RentalStatus.ACTIVE,
             paymentStatus: data.type === 'SALE' ? PaymentStatus.PENDING : PaymentStatus.PAID,
             clientName: data.clientName || user.fullName,
             type: data.type || 'RENTAL'
@@ -168,13 +114,7 @@ export const MockApi: ApiClient = {
     updateProductMission: async (id, mission, workerName, start, end) => {
         const idx = MOCK_PRODUCTS.findIndex(p => p.id === id);
         if (idx !== -1) {
-            MOCK_PRODUCTS[idx] = { 
-                ...MOCK_PRODUCTS[idx], 
-                currentMission: mission, 
-                assignedWorker: workerName,
-                missionStartDate: start,
-                missionEndDate: end
-            };
+            MOCK_PRODUCTS[idx] = { ...MOCK_PRODUCTS[idx], currentMission: mission, assignedWorker: workerName, missionStartDate: start, missionEndDate: end };
         }
         return true;
     },
@@ -205,13 +145,14 @@ export const MockApi: ApiClient = {
             const idx = MOCK_WORKERS.findIndex(w => w.id === worker.id);
             if(idx !== -1) MOCK_WORKERS[idx] = { ...MOCK_WORKERS[idx], ...worker } as Worker;
         } else {
-            const newWorker = { ...worker, id: Date.now(), status: 'OFFLINE' } as Worker;
+            const newWorker = { ...worker, id: Date.now(), status: 'OFFLINE', salary: worker.salary || 2000 } as Worker;
             MOCK_WORKERS.push(newWorker);
         }
         return true;
     },
     deleteWorker: async (id) => {
         MOCK_WORKERS = MOCK_WORKERS.filter(w => w.id !== id);
+        MOCK_SESSIONS = MOCK_SESSIONS.filter(s => s.workerId !== id);
         return true;
     },
     getWorkerSessions: async (workerId) => {
@@ -230,6 +171,8 @@ export const MockApi: ApiClient = {
     },
     deleteProduct: async (id) => {
         MOCK_PRODUCTS = MOCK_PRODUCTS.filter(x => x.id !== id);
+        MOCK_RENTALS = MOCK_RENTALS.filter(r => r.productId !== id);
+        wsService.emit('calendar_refresh_needed', null);
         return true;
     }
 };
