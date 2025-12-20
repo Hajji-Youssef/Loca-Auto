@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Truck, Users, MessageSquare, LogOut, Bell, Menu, CarFront, Gauge, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Calendar, Truck, Users, MessageSquare, LogOut, Bell, Menu, CarFront, Gauge, ShieldCheck, ShoppingBag } from 'lucide-react';
 import FleetManagement from './FleetManagement';
 import AgencyCalendar from './AgencyCalendar';
 import SharedInbox from './SharedInbox';
@@ -10,6 +10,7 @@ import AdminTeamManagement from './AdminTeamManagement';
 import AdminCarManagement from './AdminCarManagement';
 import WorkerCarManagement from './WorkerCarManagement';
 import WorkerHistory from './WorkerHistory';
+import SalesHistory from './SalesHistory';
 import { wsService } from '../../services/websocket';
 import { useAuth } from '../../context/AuthContext';
 
@@ -54,6 +55,10 @@ const Workspace: React.FC = () => {
                         
                         <Link to="/workspace/fleet" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold ${isActive('/fleet') ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'hover:bg-slate-800/50'}`}>
                             <Truck size={20} /> Missions Flotte
+                        </Link>
+
+                        <Link to="/workspace/sales-history" className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-bold ${isActive('/sales-history') ? 'bg-orange-600 text-white shadow-lg shadow-orange-900/40' : 'hover:bg-slate-800/50'}`}>
+                            <ShoppingBag size={20} /> Historique Ventes
                         </Link>
 
                         {!isAdmin && (
@@ -127,6 +132,7 @@ const Workspace: React.FC = () => {
                         <Route path="/" element={<DashboardStats user={user} />} />
                         <Route path="/calendar" element={<AgencyCalendar />} />
                         <Route path="/fleet" element={<FleetManagement />} />
+                        <Route path="/sales-history" element={<SalesHistory />} />
                         <Route path="/inbox" element={<SharedInbox />} />
                         <Route path="/cars" element={<WorkerCarManagement />} />
                         

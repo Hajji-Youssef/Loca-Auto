@@ -70,6 +70,46 @@ let MOCK_RENTALS: Rental[] = [
         paymentStatus: PaymentStatus.PAID,
         clientName: "Alice Durand",
         type: 'RENTAL'
+    },
+    // AJOUT DE VENTES STATIQUES
+    {
+        id: 2001,
+        productId: 3,
+        productTitle: "Tesla Model S Plaid",
+        productImage: "https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800",
+        startDate: "2024-05-15",
+        endDate: "2024-05-15",
+        totalPrice: 62500,
+        status: RentalStatus.COMPLETED,
+        paymentStatus: PaymentStatus.PAID,
+        clientName: "Jean-Pierre Martin",
+        type: 'SALE'
+    },
+    {
+        id: 2002,
+        productId: 16,
+        productTitle: "Fiat 500 Hybrid",
+        productImage: "https://www.fiat-official.tn/content/dam/fiat2023/cross/models/500/500/canvas/canvas-4/mobile.jpg",
+        startDate: "2024-05-18",
+        endDate: "2024-05-18",
+        totalPrice: 11250,
+        status: RentalStatus.ACTIVE,
+        paymentStatus: PaymentStatus.PENDING,
+        clientName: "Sarah Bernhardt",
+        type: 'SALE'
+    },
+    {
+        id: 2003,
+        productId: 4,
+        productTitle: "Peugeot 3008 GT",
+        productImage: "https://tunisieauto.tn/wp-content/uploads/2020/03/3008-GT-01.jpg",
+        startDate: "2024-05-20",
+        endDate: "2024-05-20",
+        totalPrice: 21250,
+        status: RentalStatus.COMPLETED,
+        paymentStatus: PaymentStatus.PAID,
+        clientName: "Marc Lavigne",
+        type: 'SALE'
     }
 ];
 
@@ -116,8 +156,8 @@ export const MockApi: ApiClient = {
             startDate: data.startDate,
             endDate: data.endDate,
             totalPrice: data.totalPrice,
-            status: RentalStatus.ACTIVE,
-            paymentStatus: PaymentStatus.PAID,
+            status: data.type === 'SALE' ? RentalStatus.ACTIVE : RentalStatus.ACTIVE,
+            paymentStatus: data.type === 'SALE' ? PaymentStatus.PENDING : PaymentStatus.PAID,
             clientName: data.clientName || user.fullName,
             type: data.type || 'RENTAL'
         };
